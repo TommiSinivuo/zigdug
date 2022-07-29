@@ -16,6 +16,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.setBuildMode(mode);
     exe.linkLibC();
 
+    // raylib
     const raylib_flags = &[_][]const u8{
         "-std=gnu99",
         "-DPLATFORM_DESKTOP",
@@ -23,6 +24,7 @@ pub fn build(b: *std.build.Builder) void {
         "-fno-sanitize=undefined", // https://github.com/raysan5/raylib/issues/1891
     };
 
+    exe.addIncludeDir("lib");
     exe.addIncludeDir("raylib/src");
     exe.addIncludeDir("./raylib/src/external/glfw/include");
 
@@ -40,6 +42,7 @@ pub fn build(b: *std.build.Builder) void {
             exe.linkSystemLibrary("winmm");
             exe.linkSystemLibrary("gdi32");
             exe.linkSystemLibrary("opengl32");
+            // TODO: make this depend on target C ABI
             exe.linkSystemLibrary("User32"); // for MSVC
             exe.linkSystemLibrary("Shell32"); // for MSVC
             //exe.addIncludeDir("./raylib/src/external/glfw/deps/mingw"); // for MINGW

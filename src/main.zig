@@ -1,10 +1,18 @@
-const c = @cImport(@cInclude("raylib.h"));
+const c = @cImport({
+    @cInclude("raylib.h");
+    @cInclude("raylib_viewport.h");
+});
 
 pub fn main() void {
+    const window_width = 1920;
+    const window_height = 1080;
     const screen_width = 800;
     const screen_height = 450;
 
-    c.InitWindow(screen_width, screen_height, "raylib [core] example - keyboard input");
+    c.InitWindow(window_width, window_height, "raylib [core] example - keyboard input");
+
+    var game_viewport = c.CreateViewport(screen_width, screen_height);
+    c.ScaleViewportToScreen(&game_viewport);
 
     var ball_position = c.Vector2{
         .x = @intToFloat(f32, screen_width) / 2,
@@ -28,11 +36,18 @@ pub fn main() void {
         }
 
         c.BeginDrawing();
+        c.ClearBackground(c.BLACK);
+
+        c.BeginViewportMode(&game_viewport);
         c.ClearBackground(c.RAYWHITE);
         c.DrawText("move the ball with arrow keys", 10, 10, 20, c.DARKGRAY);
         c.DrawCircleV(ball_position, 50, c.MAROON);
+        c.EndViewportMode();
+
+        c.DrawViewport(&game_viewport);
         c.EndDrawing();
     }
 
+    c.UnloadViewport(&game_viewport);
     c.CloseWindow();
 }
