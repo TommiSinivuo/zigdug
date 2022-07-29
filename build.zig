@@ -14,6 +14,49 @@ pub fn build(b: *std.build.Builder) void {
     const exe = b.addExecutable("zigdug", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
+    exe.linkLibC();
+
+    const raylib_flags = &[_][]const u8{
+        "-std=gnu99",
+        "-DPLATFORM_DESKTOP",
+        "-DGL_SILENCE_DEPRECATION=199309L",
+        "-fno-sanitize=undefined", // https://github.com/raysan5/raylib/issues/1891
+    };
+
+    exe.addIncludeDir("raylib/src");
+    exe.addIncludeDir("./raylib/src/external/glfw/include");
+
+    exe.addCSourceFile("./raylib/src/rcore.c", raylib_flags);
+    exe.addCSourceFile("./raylib/src/rmodels.c", raylib_flags);
+    exe.addCSourceFile("./raylib/src/raudio.c", raylib_flags);
+    exe.addCSourceFile("./raylib/src/rshapes.c", raylib_flags);
+    exe.addCSourceFile("./raylib/src/rtext.c", raylib_flags);
+    exe.addCSourceFile("./raylib/src/rtextures.c", raylib_flags);
+    exe.addCSourceFile("./raylib/src/utils.c", raylib_flags);
+
+    switch (exe.target.toTarget().os.tag) {
+        .windows => {
+            exe.addCSourceFile("./raylib/src/rglfw.c", raylib_flags);
+            exe.linkSystemLibrary("winmm");
+            exe.linkSystemLibrary("gdi32");
+            exe.linkSystemLibrary("opengl32");
+            exe.linkSystemLibrary("User32"); // for MSVC
+            exe.linkSystemLibrary("Shell32"); // for MSVC
+            //exe.addIncludeDir("./raylib/src/external/glfw/deps/mingw"); // for MINGW
+        },
+        .linux => {
+            exe.addCSourceFile("./raylib/src/rglfw.c", raylib_flags);
+            exe.linkSystemLibrary("GL");
+            exe.linkSystemLibrary("rt");
+            exe.linkSystemLibrary("dl");
+            exe.linkSystemLibrary("m");
+            exe.linkSystemLibrary("X11");
+        },
+        else => {
+            @panic("Unsupported OS");
+        },
+    }
+
     exe.install();
 
     const run_cmd = exe.run();
