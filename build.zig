@@ -24,7 +24,6 @@ pub fn build(b: *std.build.Builder) void {
         "-fno-sanitize=undefined", // https://github.com/raysan5/raylib/issues/1891
     };
 
-    exe.addIncludeDir("lib");
     exe.addIncludeDir("raylib/src");
     exe.addIncludeDir("./raylib/src/external/glfw/include");
 
@@ -59,6 +58,9 @@ pub fn build(b: *std.build.Builder) void {
             @panic("Unsupported OS");
         },
     }
+
+    // My custom raylib addons
+    exe.addCSourceFile("./src/raylib_viewport.c", raylib_flags);
 
     exe.install();
 

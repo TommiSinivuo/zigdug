@@ -1,7 +1,4 @@
-const c = @cImport({
-    @cInclude("raylib.h");
-    @cInclude("raylib_viewport.h");
-});
+const ray = @import("raylib.zig");
 
 pub fn main() void {
     const window_width = 1920;
@@ -9,45 +6,45 @@ pub fn main() void {
     const screen_width = 800;
     const screen_height = 450;
 
-    c.InitWindow(window_width, window_height, "raylib [core] example - keyboard input");
+    ray.InitWindow(window_width, window_height, "raylib [core] example - keyboard input");
 
-    var game_viewport = c.CreateViewport(screen_width, screen_height);
-    c.ScaleViewportToScreen(&game_viewport);
+    var game_viewport = ray.CreateViewport(screen_width, screen_height);
+    ray.ScaleViewportToScreen(&game_viewport);
 
-    var ball_position = c.Vector2{
+    var ball_position = ray.Vector2{
         .x = @intToFloat(f32, screen_width) / 2,
         .y = @intToFloat(f32, screen_height) / 2,
     };
 
-    c.SetTargetFPS(60);
+    ray.SetTargetFPS(60);
 
-    while (!c.WindowShouldClose()) {
-        if (c.IsKeyDown(c.KEY_RIGHT)) {
+    while (!ray.WindowShouldClose()) {
+        if (ray.IsKeyDown(ray.KeyboardKey.KEY_RIGHT)) {
             ball_position.x += 2.0;
         }
-        if (c.IsKeyDown(c.KEY_LEFT)) {
+        if (ray.IsKeyDown(ray.KeyboardKey.KEY_LEFT)) {
             ball_position.x -= 2.0;
         }
-        if (c.IsKeyDown(c.KEY_UP)) {
+        if (ray.IsKeyDown(ray.KeyboardKey.KEY_UP)) {
             ball_position.y -= 2.0;
         }
-        if (c.IsKeyDown(c.KEY_DOWN)) {
+        if (ray.IsKeyDown(ray.KeyboardKey.KEY_DOWN)) {
             ball_position.y += 2.0;
         }
 
-        c.BeginDrawing();
-        c.ClearBackground(c.BLACK);
+        ray.BeginDrawing();
+        ray.ClearBackground(ray.BLACK);
 
-        c.BeginViewportMode(&game_viewport);
-        c.ClearBackground(c.RAYWHITE);
-        c.DrawText("move the ball with arrow keys", 10, 10, 20, c.DARKGRAY);
-        c.DrawCircleV(ball_position, 50, c.MAROON);
-        c.EndViewportMode();
+        ray.BeginViewportMode(&game_viewport);
+        ray.ClearBackground(ray.RAYWHITE);
+        ray.DrawText("move the ball with arrow keys", 10, 10, 20, ray.DARKGRAY);
+        ray.DrawCircleV(ball_position, 50, ray.MAROON);
+        ray.EndViewportMode();
 
-        c.DrawViewport(&game_viewport);
-        c.EndDrawing();
+        ray.DrawViewport(&game_viewport);
+        ray.EndDrawing();
     }
 
-    c.UnloadViewport(&game_viewport);
-    c.CloseWindow();
+    ray.UnloadViewport(&game_viewport);
+    ray.CloseWindow();
 }

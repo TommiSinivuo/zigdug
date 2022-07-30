@@ -19,6 +19,7 @@ void BeginViewportMode(Viewport *vp);           // Begin viewport mode (texture 
 void EndViewportMode();                         // End viewport mode
 void DrawViewport(Viewport *vp);                // Draw the viewport onto the screen
 void ScaleViewportToScreen(Viewport *vp);       // Scale viewport to fit screen and apply letterboxing
+void UnloadViewport(Viewport *vp);              // Unload viewport
 
 Viewport CreateViewport(int width, int height)
 {
