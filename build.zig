@@ -17,6 +17,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.linkLibC();
 
     // raylib
+    // TODO: extract raylib stuff to separate function
     const raylib_flags = &[_][]const u8{
         "-std=gnu99",
         "-DPLATFORM_DESKTOP",
@@ -53,6 +54,30 @@ pub fn build(b: *std.build.Builder) void {
             exe.linkSystemLibrary("dl");
             exe.linkSystemLibrary("m");
             exe.linkSystemLibrary("X11");
+        },
+        .freebsd, .openbsd, .netbsd, .dragonfly => {
+            exe.addCSourceFile("./raylib/src/rglfw.c", raylib_flags);
+            exe.linkSystemLibrary("GL");
+            exe.linkSystemLibrary("rt");
+            exe.linkSystemLibrary("dl");
+            exe.linkSystemLibrary("m");
+            exe.linkSystemLibrary("X11");
+            exe.linkSystemLibrary("Xrandr");
+            exe.linkSystemLibrary("Xinerama");
+            exe.linkSystemLibrary("Xi");
+            exe.linkSystemLibrary("Xxf86vm");
+            exe.linkSystemLibrary("Xcursor");
+        },
+        .macos => {
+            // On macos rglfw.c include Objective-C files.
+            const raylib_flags_extra_macos = &[_][]const u8{
+                "-ObjC",
+            };
+            exe.addCSourceFile(
+                "./raylib/src/rglfw.c",
+                raylib_flags ++ raylib_flags_extra_macos,
+            );
+            exe.linkFramework("Foundation");
         },
         else => {
             @panic("Unsupported OS");
