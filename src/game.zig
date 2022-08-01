@@ -4,6 +4,24 @@ const log = std.log;
 const assert = std.debug.assert;
 
 //------------------------------------------------------------------------------------
+// Common structs and enums
+//------------------------------------------------------------------------------------
+
+pub const Direction = enum(u8) {
+    up,
+    right,
+    down,
+    left,
+};
+
+pub fn Point(comptime T: type) type {
+    return struct {
+        x: T,
+        y: T,
+    };
+}
+
+//------------------------------------------------------------------------------------
 // Top level state machine
 //------------------------------------------------------------------------------------
 
@@ -84,17 +102,23 @@ pub const Tile = enum(u8) {
     space,
     dirt,
     wall,
-    boulder,
-    gem,
+    boulder_stationary,
+    boulder_falling,
+    gem_stationary,
+    gem_falling,
     door_closed,
     door_open,
     player,
 };
 
 pub const GameplayData = struct {
-    tilemap: [tilemap_height][tilemap_width]Tile = [_][tilemap_width]Tile{[_]Tile{.none} ** 16} ** 16,
     state: GamePlaySubState = .load_map,
+    tilemap: [tilemap_height][tilemap_width]Tile = [_][tilemap_width]Tile{[_]Tile{.none} ** 16} ** 16,
+    player_position: Point(i32) = Point(i32){ .x = 0, .y = 0 },
+    player_turn_acc: f64 = 1.0 / 6.0,
 };
+
+const player_turn_step: f64 = 1.0 / 6.0;
 
 fn updateGameplayState(data: *GameData, input: *GameInput, delta_s: f64) void {
     switch (data.game.state) {
@@ -114,12 +138,16 @@ pub const GamePlaySubState = enum(u8) {
     finish_map,
 };
 
+//------------------------------------------------------------------------------------
+// Load map sub state
+//------------------------------------------------------------------------------------
+
 fn updateLoadMapState(data: *GameData) void {
-    loadMap("data/maps/001.png", &data.game.tilemap);
+    loadMap("data/maps/001.png", data);
     data.game.state = .play_map;
 }
 
-fn loadMap(filename: []const u8, tilemap: *[tilemap_height][tilemap_width]Tile) void {
+fn loadMap(filename: []const u8, data: *GameData) void {
     var map_image = ray.LoadImage(@ptrCast([*c]const u8, filename));
     ray.ImageFormat(&map_image, ray.PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
 
@@ -144,25 +172,120 @@ fn loadMap(filename: []const u8, tilemap: *[tilemap_height][tilemap_width]Tile) 
                 0xFF532B1D => Tile.space,
                 0xFF3652AB => Tile.dirt,
                 0xFF27ECFF => Tile.wall,
-                0xFFC7C3C2 => Tile.boulder,
-                0xFF4D00FF => Tile.gem,
+                0xFFC7C3C2 => Tile.boulder_stationary,
+                0xFF4D00FF => Tile.gem_stationary,
                 0xFFE8F1FF => Tile.player,
                 0xFFA877FF => Tile.door_closed,
                 else => Tile.none,
             };
 
-            tilemap[y][x] = tile_value;
+            data.game.tilemap[y][x] = tile_value;
+            if (tile_value == .player) {
+                data.game.player_position = Point(i32){
+                    .x = @intCast(i32, x),
+                    .y = @intCast(i32, y),
+                };
+            }
             pixel_index += 1;
         }
     }
     ray.UnloadImage(map_image);
 }
 
-fn updatePlayMapState(data: *GameData, input: *GameInput, _: f64) void {
-    if (input.action) {
-        data.game.state = .finish_map;
+//------------------------------------------------------------------------------------
+// Play map sub state (this is where the beaf of the game is)
+//------------------------------------------------------------------------------------
+
+fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
+    updatePlayer(data, input, delta_s);
+    updateMap(data, delta_s);
+}
+
+fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
+    data.game.player_turn_acc += delta_s;
+
+    if (data.game.player_turn_acc > player_turn_step) {
+        if (input.up or input.right or input.down or input.left) {
+            var direction: Direction = undefined;
+            if (input.up) direction = .up;
+            if (input.right) direction = .right;
+            if (input.down) direction = .down;
+            if (input.left) direction = .left;
+
+            movePlayer(direction, data);
+            data.game.player_turn_acc = 0;
+        }
     }
 }
+
+fn movePlayer(direction: Direction, data: *GameData) void {
+    const start_pos = data.game.player_position;
+    const new_pos = switch (direction) {
+        .down => southOf(start_pos),
+        .left => westOf(start_pos),
+        .right => eastOf(start_pos),
+        .up => northOf(start_pos),
+    };
+    const target_tile = data.game.tilemap[@intCast(usize, new_pos.y)][@intCast(usize, new_pos.x)];
+    switch (target_tile) {
+        .space, .dirt, .gem_stationary, .gem_falling => {
+            data.game.player_position = new_pos;
+            data.game.tilemap[@intCast(usize, new_pos.y)][@intCast(usize, new_pos.x)] = .player;
+            data.game.tilemap[@intCast(usize, start_pos.y)][@intCast(usize, start_pos.x)] = .space;
+        },
+        else => {},
+    }
+}
+
+fn updateMap(_: *GameData, _: f64) void {}
+
+fn northOf(pos: Point(i32)) Point(i32) {
+    return Point(i32){
+        .x = pos.x,
+        .y = pos.y - 1,
+    };
+}
+
+fn eastOf(pos: Point(i32)) Point(i32) {
+    return Point(i32){
+        .x = pos.x + 1,
+        .y = pos.y,
+    };
+}
+
+fn southOf(pos: Point(i32)) Point(i32) {
+    return Point(i32){
+        .x = pos.x,
+        .y = pos.y + 1,
+    };
+}
+
+fn westOf(pos: Point(i32)) Point(i32) {
+    return Point(i32){
+        .x = pos.x - 1,
+        .y = pos.y,
+    };
+}
+
+fn northEastOf(pos: Point(i32)) Point(i32) {
+    return northOf(eastOf(pos));
+}
+
+fn southEastOf(pos: Point(i32)) Point(i32) {
+    return southOf(eastOf(pos));
+}
+
+fn southWestOf(pos: Point(i32)) Point(i32) {
+    return southOf(westOf(pos));
+}
+
+fn northWestOf(pos: Point(i32)) Point(i32) {
+    return northOf(westOf(pos));
+}
+
+//------------------------------------------------------------------------------------
+// Finish map sub state
+//------------------------------------------------------------------------------------
 
 fn updateFinishMapState(data: *GameData) void {
     data.game.state = .load_map;

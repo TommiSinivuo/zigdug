@@ -81,11 +81,11 @@ fn drawTile(tile: game.Tile, tile_x: usize, tile_y: usize, spritesheet_texture: 
         .space => sprite_rect = spritesheet.space,
         .dirt => sprite_rect = spritesheet.dirt,
         .wall => sprite_rect = spritesheet.brick,
-        .boulder => {
+        .boulder_stationary, .boulder_falling => {
             sprite_rect = spritesheet.boulder;
             draw_backdrop = true;
         },
-        .gem => {
+        .gem_stationary, .gem_falling => {
             sprite_rect = spritesheet.gem;
             draw_backdrop = true;
         },
