@@ -34,6 +34,14 @@ pub const Rectangle = extern struct {
     height: f32,
 };
 
+pub const Image = extern struct {
+    data: ?*anyopaque,
+    width: c_int,
+    height: c_int,
+    mipmaps: c_int,
+    format: PixelFormat,
+};
+
 // Color type, RGBA (32bit)
 pub const Color = extern struct {
     r: u8,
@@ -186,6 +194,30 @@ pub const MouseButton = enum(c_int) {
     MOUSE_MIDDLE_BUTTON = 2,
 };
 
+pub const PixelFormat = enum(c_int) {
+    PIXELFORMAT_UNCOMPRESSED_GRAYSCALE = 1,
+    PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA = 2,
+    PIXELFORMAT_UNCOMPRESSED_R5G6B5 = 3,
+    PIXELFORMAT_UNCOMPRESSED_R8G8B8 = 4,
+    PIXELFORMAT_UNCOMPRESSED_R5G5B5A1 = 5,
+    PIXELFORMAT_UNCOMPRESSED_R4G4B4A4 = 6,
+    PIXELFORMAT_PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 = 7,
+    PIXELFORMAT_UNCOMPRESSED_R32 = 8,
+    PIXELFORMAT_UNCOMPRESSED_R32G32B32 = 9,
+    PIXELFORMAT_UNCOMPRESSED_R32G32B32A32 = 10,
+    PIXELFORMAT_COMPRESSED_DXT1_RGB = 11,
+    PIXELFORMAT_COMPRESSED_DXT1_RGBA = 12,
+    PIXELFORMAT_COMPRESSED_DXT3_RGBA = 13,
+    PIXELFORMAT_COMPRESSED_DXT5_RGBA = 14,
+    PIXELFORMAT_COMPRESSED_ETC1_RGB = 15,
+    PIXELFORMAT_COMPRESSED_ETC2_RGB = 16,
+    PIXELFORMAT_COMPRESSED_ETC2_EAC_RGBA = 17,
+    PIXELFORMAT_COMPRESSED_PVRT_RGB = 18,
+    PIXELFORMAT_COMPRESSED_PVRT_RGBA = 19,
+    PIXELFORMAT_COMPRESSED_ASTC_4x4_RGBA = 20,
+    PIXELFORMAT_COMPRESSED_ASTC_8x8_RGBA = 21,
+};
+
 //------------------------------------------------------------------------------------
 // Window and Graphics Device Functions (Module: core)
 //------------------------------------------------------------------------------------
@@ -202,6 +234,7 @@ pub extern fn EndDrawing() void;
 
 // Timing-related functions
 pub extern fn SetTargetFPS(fps: c_int) void;
+pub extern fn GetFrameTime() f64;
 pub extern fn GetTime() f64;
 
 //------------------------------------------------------------------------------------
@@ -226,6 +259,14 @@ pub extern fn GetMouseY() i32;
 // Basic shapes drawing functions
 pub extern fn DrawCircleV(center: Vector2, radius: f32, color: Color) void;
 pub extern fn DrawRectangle(posX: c_int, posY: c_int, width: c_int, height: c_int, color: Color) void;
+
+//------------------------------------------------------------------------------------
+// Texture Loading and Drawing Functions (Module: textures)
+//------------------------------------------------------------------------------------
+
+// Image loading functions
+// NOTE: This functions do not require GPU access
+pub extern fn LoadImage(fileName: []const u8) Image;
 
 //------------------------------------------------------------------------------------
 // Font Loading and Text Drawing Functions (Module: text)
