@@ -201,7 +201,7 @@ pub const PixelFormat = enum(c_int) {
     PIXELFORMAT_UNCOMPRESSED_R8G8B8 = 4,
     PIXELFORMAT_UNCOMPRESSED_R5G5B5A1 = 5,
     PIXELFORMAT_UNCOMPRESSED_R4G4B4A4 = 6,
-    PIXELFORMAT_PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 = 7,
+    PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 = 7,
     PIXELFORMAT_UNCOMPRESSED_R32 = 8,
     PIXELFORMAT_UNCOMPRESSED_R32G32B32 = 9,
     PIXELFORMAT_UNCOMPRESSED_R32G32B32A32 = 10,
@@ -266,7 +266,19 @@ pub extern fn DrawRectangle(posX: c_int, posY: c_int, width: c_int, height: c_in
 
 // Image loading functions
 // NOTE: This functions do not require GPU access
-pub extern fn LoadImage(fileName: []const u8) Image;
+pub extern fn LoadImage(fileName: [*c]const u8) Image;
+pub extern fn UnloadImage(image: Image) void;
+
+// Image manipulation functions
+pub extern fn ImageFormat(image: *Image, newFormat: PixelFormat) void;
+
+// Texture loading functions
+// NOTE: These functions require GPU access
+pub extern fn LoadTexture(fileName: [*c]const u8) Texture2D;
+pub extern fn UnloadTexture(texture: Texture2D) void;
+
+// Texture drawing functions
+pub extern fn DrawTextureRec(texture: Texture2D, source: Rectangle, position: Vector2, tint: Color) void;
 
 //------------------------------------------------------------------------------------
 // Font Loading and Text Drawing Functions (Module: text)

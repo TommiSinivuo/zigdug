@@ -4,7 +4,7 @@
 //
 // {{ smartUpdateKey }}
 
-const SpriteRect = struct {
+pub const SpriteRect = struct {
     x: i32,
     y: i32,
     width: i32,
@@ -15,7 +15,7 @@ const SpriteRect = struct {
 pub const {{ sprite.trimmedName }}: SpriteRect = SpriteRect{
     .x = {{ sprite.frameRect.x }},
     .y = {{ sprite.frameRect.y }},
-    .w = {{ sprite.frameRect.width }},
-    .h = {{ sprite.frameRect.height }},
+    .width = {{ sprite.frameRect.width }},
+    .height = {{ sprite.frameRect.height }},
 };
 {% endfor %}
