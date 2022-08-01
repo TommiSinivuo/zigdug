@@ -73,17 +73,45 @@ fn drawGameplay(data: *GameData, spritesheet_texture: ray.Texture2D) void {
 }
 
 fn drawTile(tile: game.Tile, tile_x: usize, tile_y: usize, spritesheet_texture: ray.Texture2D) void {
-    const sprite_rect = switch (tile) {
-        .none => spritesheet.debug,
-        .space => spritesheet.space,
-        .dirt => spritesheet.dirt,
-        .wall => spritesheet.brick,
-        .boulder => spritesheet.boulder,
-        .gem => spritesheet.gem,
-        .door_closed => spritesheet.door_closed,
-        .door_open => spritesheet.door_open,
-        .player => spritesheet.player,
-    };
+    var draw_backdrop = false; // If tile has transparency, then we want to draw a background for it
+    var sprite_rect: spritesheet.SpriteRect = undefined;
+
+    switch (tile) {
+        .none => sprite_rect = spritesheet.debug,
+        .space => sprite_rect = spritesheet.space,
+        .dirt => sprite_rect = spritesheet.dirt,
+        .wall => sprite_rect = spritesheet.brick,
+        .boulder => {
+            sprite_rect = spritesheet.boulder;
+            draw_backdrop = true;
+        },
+        .gem => {
+            sprite_rect = spritesheet.gem;
+            draw_backdrop = true;
+        },
+        .door_closed => {
+            sprite_rect = spritesheet.door_closed;
+            draw_backdrop = true;
+        },
+        .door_open => {
+            sprite_rect = spritesheet.door_open;
+            draw_backdrop = true;
+        },
+        .player => {
+            sprite_rect = spritesheet.player;
+            draw_backdrop = true;
+        },
+    }
+
+    if (draw_backdrop) {
+        ray.DrawTextureRec(
+            spritesheet_texture,
+            spriteRectToRectangle(spritesheet.space),
+            tileToScreenCoordinates(tile_x, tile_y),
+            ray.WHITE,
+        );
+    }
+
     ray.DrawTextureRec(
         spritesheet_texture,
         spriteRectToRectangle(sprite_rect),
