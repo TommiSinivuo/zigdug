@@ -21,6 +21,10 @@ pub fn draw(data: *GameData, viewport: *ray.Viewport, spritesheet_texture: ray.T
     ray.EndDrawing();
 }
 
+//------------------------------------------------------------------------------------
+// Title screen
+//------------------------------------------------------------------------------------
+
 fn drawTitle(data: *GameData, spritesheet_texture: ray.Texture2D) void {
 
     // background
@@ -52,6 +56,10 @@ fn drawTitle(data: *GameData, spritesheet_texture: ray.Texture2D) void {
         ray.WHITE,
     );
 }
+
+//------------------------------------------------------------------------------------
+// Gameplay
+//------------------------------------------------------------------------------------
 
 fn drawGameplay(data: *GameData, spritesheet_texture: ray.Texture2D) void {
     ray.ClearBackground(ray.BLACK);
@@ -91,6 +99,10 @@ fn tileToScreenCoordinates(tile_x: usize, tile_y: usize) ray.Vector2 {
     };
 }
 
+//------------------------------------------------------------------------------------
+// Credits
+//------------------------------------------------------------------------------------
+
 fn drawCredits(spritesheet_texture: ray.Texture2D) void {
 
     // background
@@ -112,6 +124,10 @@ fn drawCredits(spritesheet_texture: ray.Texture2D) void {
     // credits
     ray.DrawText("A GAME BY TOMMI SINIVUO", 56, 204, 10, ray.RAYWHITE);
 }
+
+//------------------------------------------------------------------------------------
+// Common utils
+//------------------------------------------------------------------------------------
 
 fn spriteRectToRectangle(sprite_rect: spritesheet.SpriteRect) ray.Rectangle {
     return ray.Rectangle{

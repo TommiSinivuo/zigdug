@@ -3,6 +3,10 @@ const std = @import("std");
 const log = std.log;
 const assert = std.debug.assert;
 
+//------------------------------------------------------------------------------------
+// Top level state machine
+//------------------------------------------------------------------------------------
+
 pub const GameState = enum(u8) {
     // Main states
     title,
@@ -10,27 +14,11 @@ pub const GameState = enum(u8) {
     credits,
 };
 
-pub const TitleSelection = enum(u8) {
-    play,
-    quit,
-};
-
-pub const Tile = enum(u8) {
-    none,
-    space,
-    dirt,
-    wall,
-    boulder,
-    gem,
-    door_closed,
-    door_open,
-    player,
-};
-
-pub const GamePlayState = enum(u8) {
-    load_map,
-    play_map,
-    finish_map,
+pub const GameData = struct {
+    is_running: bool = true,
+    state: GameState,
+    title: TitleData = TitleData{},
+    game: GameplayData = GameplayData{},
 };
 
 pub const GameInput = struct {
@@ -41,25 +29,6 @@ pub const GameInput = struct {
     right: bool = false,
 };
 
-pub const GameData = struct {
-    is_running: bool = true,
-    state: GameState,
-    title: TitleData = TitleData{},
-    game: GameplayData = GameplayData{},
-};
-
-pub const TitleData = struct {
-    selection: TitleSelection = .play,
-};
-
-pub const tilemap_width = 16;
-pub const tilemap_height = 16;
-
-pub const GameplayData = struct {
-    tilemap: [tilemap_height][tilemap_width]Tile = [_][tilemap_width]Tile{[_]Tile{.none} ** 16} ** 16,
-    state: GamePlayState = .load_map,
-};
-
 pub fn init() GameData {
     return GameData{
         .state = .title,
@@ -68,13 +37,26 @@ pub fn init() GameData {
 
 pub fn update(data: *GameData, input: *GameInput, delta_s: f64) void {
     switch (data.state) {
-        .title => updateTitle(data, input),
-        .play => updateGameplay(data, input, delta_s),
-        .credits => updateCredits(data, input),
+        .title => updateTitleState(data, input),
+        .play => updateGameplayState(data, input, delta_s),
+        .credits => updateCreditsState(data, input),
     }
 }
 
-fn updateTitle(data: *GameData, input: *GameInput) void {
+//------------------------------------------------------------------------------------
+// Title screen state
+//------------------------------------------------------------------------------------
+
+pub const TitleSelection = enum(u8) {
+    play,
+    quit,
+};
+
+pub const TitleData = struct {
+    selection: TitleSelection = .play,
+};
+
+fn updateTitleState(data: *GameData, input: *GameInput) void {
     // Check for selection change
     if (data.title.selection == .play and input.down) {
         data.title.selection = .quit;
@@ -90,15 +72,49 @@ fn updateTitle(data: *GameData, input: *GameInput) void {
     }
 }
 
-fn updateGameplay(data: *GameData, input: *GameInput, delta_s: f64) void {
+//------------------------------------------------------------------------------------
+// Gameplay state
+//------------------------------------------------------------------------------------
+
+pub const tilemap_width = 16;
+pub const tilemap_height = 16;
+
+pub const Tile = enum(u8) {
+    none,
+    space,
+    dirt,
+    wall,
+    boulder,
+    gem,
+    door_closed,
+    door_open,
+    player,
+};
+
+pub const GameplayData = struct {
+    tilemap: [tilemap_height][tilemap_width]Tile = [_][tilemap_width]Tile{[_]Tile{.none} ** 16} ** 16,
+    state: GamePlaySubState = .load_map,
+};
+
+fn updateGameplayState(data: *GameData, input: *GameInput, delta_s: f64) void {
     switch (data.game.state) {
-        .load_map => updateLoadMap(data),
-        .play_map => updatePlayMap(data, input, delta_s),
-        .finish_map => updateFinishMap(data),
+        .load_map => updateLoadMapState(data),
+        .play_map => updatePlayMapState(data, input, delta_s),
+        .finish_map => updateFinishMapState(data),
     }
 }
 
-fn updateLoadMap(data: *GameData) void {
+//------------------------------------------------------------------------------------
+// Sub states for gameplay state
+//------------------------------------------------------------------------------------
+
+pub const GamePlaySubState = enum(u8) {
+    load_map,
+    play_map,
+    finish_map,
+};
+
+fn updateLoadMapState(data: *GameData) void {
     loadMap("data/maps/001.png", &data.game.tilemap);
     data.game.state = .play_map;
 }
@@ -142,18 +158,22 @@ fn loadMap(filename: []const u8, tilemap: *[tilemap_height][tilemap_width]Tile) 
     ray.UnloadImage(map_image);
 }
 
-fn updatePlayMap(data: *GameData, input: *GameInput, _: f64) void {
+fn updatePlayMapState(data: *GameData, input: *GameInput, _: f64) void {
     if (input.action) {
         data.game.state = .finish_map;
     }
 }
 
-fn updateFinishMap(data: *GameData) void {
+fn updateFinishMapState(data: *GameData) void {
     data.game.state = .load_map;
     data.state = .credits;
 }
 
-fn updateCredits(data: *GameData, input: *GameInput) void {
+//------------------------------------------------------------------------------------
+// End credits state
+//------------------------------------------------------------------------------------
+
+fn updateCreditsState(data: *GameData, input: *GameInput) void {
     if (input.action) {
         data.state = .title;
     }
