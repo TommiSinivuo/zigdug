@@ -215,8 +215,13 @@ fn loadMap(filename: []const u8, data: *GameData) void {
 //------------------------------------------------------------------------------------
 
 fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
-    updatePlayer(data, input, delta_s);
-    updateMap(data, delta_s);
+    if (data.game.is_player_alive) {
+        updatePlayer(data, input, delta_s);
+        updateMap(data, delta_s);
+    } else {
+        data.state = .credits;
+        data.game.state = .load_map;
+    }
 }
 
 fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
@@ -291,7 +296,11 @@ fn updatePhysics(tile: Tile, point: Point(i32), data: *GameData) void {
                 falling_objects.setTile(point, true);
             }
         },
-        .player => data.game.is_player_alive = false,
+        .player => {
+            if (falling_objects.getTile(point)) {
+                data.game.is_player_alive = false;
+            }
+        },
         .boulder, .gem => {
             if (falling_objects.getTile(southOf(point)) and !falling_objects.getTile(point)) {
                 falling_objects.setTile(point, true);
