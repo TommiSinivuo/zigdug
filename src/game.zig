@@ -108,6 +108,7 @@ pub const GameplayData = struct {
     is_player_alive: bool = true,
     player_energy: f64 = 1.0 / 6.0,
     map_energy: f64 = 0,
+    skip_next_tile: bool = false,
 
     pub fn init(allocator: Allocator) !GameplayData {
         const tilemap = try Tilemap(Tile).init(
@@ -162,6 +163,7 @@ fn updateLoadMapState(data: *GameData) void {
     data.game.is_player_alive = true;
     data.game.player_energy = 1.0 / 6.0;
     data.game.map_energy = 0;
+    data.game.skip_next_tile = false;
     data.game.state = .play_map;
 }
 
@@ -268,11 +270,15 @@ fn updateMap(data: *GameData, delta_s: f64) void {
         var tilemap_iterator = tilemap.iteratorBackward();
 
         while (tilemap_iterator.next()) |item| {
-            switch (item.value) {
-                .boulder, .gem => {
-                    updatePhysics(item.value, item.point, data);
-                },
-                else => {},
+            if (!data.game.skip_next_tile) {
+                switch (item.value) {
+                    .boulder, .gem => {
+                        updatePhysics(item.value, item.point, data);
+                    },
+                    else => {},
+                }
+            } else {
+                data.game.skip_next_tile = false;
             }
         }
         data.game.map_energy = 0;
@@ -304,6 +310,36 @@ fn updatePhysics(tile: Tile, point: Point(i32), data: *GameData) void {
         .boulder, .gem => {
             if (falling_objects.getTile(southOf(point)) and !falling_objects.getTile(point)) {
                 falling_objects.setTile(point, true);
+                return;
+            }
+
+            const tile_east = tilemap.getTile(eastOf(point));
+            const tile_south_east = tilemap.getTile(southEastOf(point));
+            if (tile_east == .space and tile_south_east == .space) {
+                if (falling_objects.getTile(point)) {
+                    tilemap.setTile(eastOf(point), tile);
+                    tilemap.setTile(point, .space);
+                    falling_objects.setTile(point, false);
+                    falling_objects.setTile(eastOf(point), true);
+                } else {
+                    falling_objects.setTile(point, true);
+                }
+                return;
+            }
+
+            const tile_west = tilemap.getTile(westOf(point));
+            const tile_south_west = tilemap.getTile(southWestOf(point));
+            if (tile_west == .space and tile_south_west == .space) {
+                if (falling_objects.getTile(point)) {
+                    tilemap.setTile(westOf(point), tile);
+                    tilemap.setTile(point, .space);
+                    falling_objects.setTile(point, false);
+                    falling_objects.setTile(westOf(point), true);
+                    data.game.skip_next_tile = true;
+                } else {
+                    falling_objects.setTile(point, true);
+                }
+                return;
             }
         },
         else => {
