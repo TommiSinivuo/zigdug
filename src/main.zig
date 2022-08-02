@@ -18,11 +18,14 @@ pub fn main() !void {
     const screen_height = 256;
 
     ray.InitWindow(window_width, window_height, "Zig Dug");
+    defer ray.CloseWindow();
 
     var game_viewport = ray.CreateViewport(screen_width, screen_height);
+    defer ray.UnloadViewport(&game_viewport);
     ray.ScaleViewportToScreen(&game_viewport);
 
     const spritesheet_texture = ray.LoadTexture("data/spritesheet.png");
+    defer ray.UnloadTexture(spritesheet_texture);
 
     var game_data = try game.init(allocator);
     var game_input = game.GameInput{};
@@ -35,10 +38,6 @@ pub fn main() !void {
         game.update(&game_data, &game_input, delta_s);
         render.draw(&game_data, &game_viewport, spritesheet_texture);
     }
-
-    ray.UnloadTexture(spritesheet_texture);
-    ray.UnloadViewport(&game_viewport);
-    ray.CloseWindow();
 }
 
 fn processInput(game_input: *GameInput) void {
