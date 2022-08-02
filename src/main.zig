@@ -1,3 +1,6 @@
+const std = @import("std");
+const Allocator = std.mem.allocator;
+
 const ray = @import("raylib.zig");
 const game = @import("game.zig");
 const render = @import("render.zig");
@@ -5,7 +8,10 @@ const render = @import("render.zig");
 const GameData = game.GameData;
 const GameInput = game.GameInput;
 
-pub fn main() void {
+pub fn main() !void {
+    var arena_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena_allocator.allocator();
+
     const window_width = 1920;
     const window_height = 1920;
     const screen_width = 256;
@@ -18,7 +24,7 @@ pub fn main() void {
 
     const spritesheet_texture = ray.LoadTexture("data/spritesheet.png");
 
-    var game_data = game.init();
+    var game_data = try game.init(allocator);
     var game_input = game.GameInput{};
 
     ray.SetTargetFPS(60);

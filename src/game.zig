@@ -1,25 +1,14 @@
-const ray = @import("raylib.zig");
 const std = @import("std");
+const Allocator = std.mem.Allocator;
+
+const ray = @import("raylib.zig");
 const log = std.log;
 const assert = std.debug.assert;
 
-//------------------------------------------------------------------------------------
-// Common structs and enums
-//------------------------------------------------------------------------------------
-
-pub const Direction = enum(u8) {
-    up,
-    right,
-    down,
-    left,
-};
-
-pub fn Point(comptime T: type) type {
-    return struct {
-        x: T,
-        y: T,
-    };
-}
+const Tilemap = @import("tilemap.zig").Tilemap;
+const common = @import("common.zig");
+const Direction = common.Direction;
+const Point = common.Point;
 
 //------------------------------------------------------------------------------------
 // Top level state machine
@@ -47,9 +36,11 @@ pub const GameInput = struct {
     right: bool = false,
 };
 
-pub fn init() GameData {
+pub fn init(allocator: Allocator) !GameData {
+    var gameplay_data = try GameplayData.init(allocator);
     return GameData{
         .state = .title,
+        .game = gameplay_data,
     };
 }
 
@@ -113,12 +104,25 @@ pub const Tile = enum(u8) {
 
 pub const GameplayData = struct {
     state: GamePlaySubState = .load_map,
-    tilemap: [tilemap_height][tilemap_width]Tile = [_][tilemap_width]Tile{[_]Tile{.none} ** 16} ** 16,
+    tilemap: Tilemap(Tile),
     player_position: Point(i32) = Point(i32){ .x = 0, .y = 0 },
-    player_turn_acc: f64 = 1.0 / 6.0,
+    player_energy: f64 = 1.0 / 6.0,
+
+    pub fn init(allocator: Allocator) !GameplayData {
+        const tilemap = try Tilemap(Tile).init(
+            allocator,
+            tilemap_width,
+            tilemap_height,
+            1,
+            Tile.none,
+        );
+        return GameplayData{
+            .tilemap = tilemap,
+        };
+    }
 };
 
-const player_turn_step: f64 = 1.0 / 6.0;
+const player_energy_full: f64 = 1.0 / 6.0;
 
 fn updateGameplayState(data: *GameData, input: *GameInput, delta_s: f64) void {
     switch (data.game.state) {
@@ -160,35 +164,30 @@ fn loadMap(filename: []const u8, data: *GameData) void {
     const pixels_ptr = @ptrCast([*]u32, @alignCast(@alignOf(u32), map_image.data.?));
     const pixels = pixels_ptr[0..n_pixels];
 
-    var pixel_index: usize = 0;
-    var y: usize = 0;
-    while (y < tilemap_height) : (y += 1) {
-        var x: usize = 0;
-        while (x < tilemap_width) : (x += 1) {
-            const pixel_value = pixels[pixel_index];
+    var tilemap = data.game.tilemap;
 
-            const tile_value = switch (pixel_value) {
-                0xFF000000 => Tile.none,
-                0xFF532B1D => Tile.space,
-                0xFF3652AB => Tile.dirt,
-                0xFF27ECFF => Tile.wall,
-                0xFFC7C3C2 => Tile.boulder_stationary,
-                0xFF4D00FF => Tile.gem_stationary,
-                0xFFE8F1FF => Tile.player,
-                0xFFA877FF => Tile.door_closed,
-                else => Tile.none,
+    for (pixels) |pixel_value, i| {
+        const tile_value = switch (pixel_value) {
+            0xFF000000 => Tile.none,
+            0xFF532B1D => Tile.space,
+            0xFF3652AB => Tile.dirt,
+            0xFF27ECFF => Tile.wall,
+            0xFFC7C3C2 => Tile.boulder_stationary,
+            0xFF4D00FF => Tile.gem_stationary,
+            0xFFE8F1FF => Tile.player,
+            0xFFA877FF => Tile.door_closed,
+            else => Tile.none,
+        };
+
+        tilemap.memory.tiles[i] = tile_value;
+        if (tile_value == .player) {
+            data.game.player_position = Point(i32){
+                .x = @intCast(i32, @mod(i, @intCast(usize, width))),
+                .y = @intCast(i32, @divFloor(i, @intCast(usize, width))),
             };
-
-            data.game.tilemap[y][x] = tile_value;
-            if (tile_value == .player) {
-                data.game.player_position = Point(i32){
-                    .x = @intCast(i32, x),
-                    .y = @intCast(i32, y),
-                };
-            }
-            pixel_index += 1;
         }
     }
+
     ray.UnloadImage(map_image);
 }
 
@@ -202,9 +201,9 @@ fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
 }
 
 fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
-    data.game.player_turn_acc += delta_s;
+    data.game.player_energy += delta_s;
 
-    if (data.game.player_turn_acc > player_turn_step) {
+    if (data.game.player_energy > player_energy_full) {
         if (input.up or input.right or input.down or input.left) {
             var direction: Direction = undefined;
             if (input.up) direction = .up;
@@ -213,7 +212,7 @@ fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
             if (input.left) direction = .left;
 
             movePlayer(direction, data);
-            data.game.player_turn_acc = 0;
+            data.game.player_energy = 0;
         }
     }
 }
@@ -226,12 +225,12 @@ fn movePlayer(direction: Direction, data: *GameData) void {
         .right => eastOf(start_pos),
         .up => northOf(start_pos),
     };
-    const target_tile = data.game.tilemap[@intCast(usize, new_pos.y)][@intCast(usize, new_pos.x)];
+    const target_tile = data.game.tilemap.getTile(new_pos);
     switch (target_tile) {
         .space, .dirt, .gem_stationary, .gem_falling => {
             data.game.player_position = new_pos;
-            data.game.tilemap[@intCast(usize, new_pos.y)][@intCast(usize, new_pos.x)] = .player;
-            data.game.tilemap[@intCast(usize, start_pos.y)][@intCast(usize, start_pos.x)] = .space;
+            data.game.tilemap.setTile(new_pos, .player);
+            data.game.tilemap.setTile(start_pos, .space);
         },
         else => {},
     }

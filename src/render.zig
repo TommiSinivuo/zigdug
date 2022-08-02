@@ -2,6 +2,7 @@ const ray = @import("raylib.zig");
 const spritesheet = @import("spritesheet.zig");
 const game = @import("game.zig");
 const GameData = game.GameData;
+const Point = @import("common.zig").Point;
 
 const tile_size = 16;
 
@@ -63,16 +64,16 @@ fn drawTitle(data: *GameData, spritesheet_texture: ray.Texture2D) void {
 
 fn drawGameplay(data: *GameData, spritesheet_texture: ray.Texture2D) void {
     ray.ClearBackground(ray.BLACK);
-    var y: usize = 0;
-    while (y < game.tilemap_height) : (y += 1) {
-        var x: usize = 0;
-        while (x < game.tilemap_width) : (x += 1) {
-            drawTile(data.game.tilemap[y][x], x, y, spritesheet_texture);
-        }
+
+    var tilemap = data.game.tilemap;
+    var tilemap_iterator = tilemap.iteratorForward();
+
+    while (tilemap_iterator.next()) |item| {
+        drawTile(item.value, item.point, spritesheet_texture);
     }
 }
 
-fn drawTile(tile: game.Tile, tile_x: usize, tile_y: usize, spritesheet_texture: ray.Texture2D) void {
+fn drawTile(tile: game.Tile, tile_point: Point(i32), spritesheet_texture: ray.Texture2D) void {
     var draw_backdrop = false; // If tile has transparency, then we want to draw a background for it
     var sprite_rect: spritesheet.SpriteRect = undefined;
 
@@ -103,11 +104,13 @@ fn drawTile(tile: game.Tile, tile_x: usize, tile_y: usize, spritesheet_texture: 
         },
     }
 
+    const screen_position = tileToScreenCoordinates(tile_point);
+
     if (draw_backdrop) {
         ray.DrawTextureRec(
             spritesheet_texture,
             spriteRectToRectangle(spritesheet.space),
-            tileToScreenCoordinates(tile_x, tile_y),
+            screen_position,
             ray.WHITE,
         );
     }
@@ -115,15 +118,15 @@ fn drawTile(tile: game.Tile, tile_x: usize, tile_y: usize, spritesheet_texture: 
     ray.DrawTextureRec(
         spritesheet_texture,
         spriteRectToRectangle(sprite_rect),
-        tileToScreenCoordinates(tile_x, tile_y),
+        screen_position,
         ray.WHITE,
     );
 }
 
-fn tileToScreenCoordinates(tile_x: usize, tile_y: usize) ray.Vector2 {
+fn tileToScreenCoordinates(tile_point: Point(i32)) ray.Vector2 {
     return ray.Vector2{
-        .x = @intToFloat(f32, tile_x) * tile_size,
-        .y = @intToFloat(f32, tile_y) * tile_size,
+        .x = @intToFloat(f32, tile_point.x) * tile_size,
+        .y = @intToFloat(f32, tile_point.y) * tile_size,
     };
 }
 
