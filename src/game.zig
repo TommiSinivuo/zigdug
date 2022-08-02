@@ -109,6 +109,8 @@ pub const GameplayData = struct {
     player_energy: f64 = 1.0 / 6.0,
     map_energy: f64 = 0,
     skip_next_tile: bool = false,
+    gems: i32 = 0,
+    is_level_beaten: bool = false,
 
     pub fn init(allocator: Allocator) !GameplayData {
         const tilemap = try Tilemap(Tile).init(
@@ -158,13 +160,15 @@ pub const GamePlaySubState = enum(u8) {
 //------------------------------------------------------------------------------------
 
 fn updateLoadMapState(data: *GameData) void {
-    loadMap("data/maps/001.png", data);
+    data.game.gems = 0;
     data.game.falling_objects.setTiles(false);
     data.game.is_player_alive = true;
     data.game.player_energy = 1.0 / 6.0;
     data.game.map_energy = 0;
     data.game.skip_next_tile = false;
+    data.game.is_level_beaten = false;
     data.game.state = .play_map;
+    loadMap("data/maps/001.png", data);
 }
 
 fn loadMap(filename: []const u8, data: *GameData) void {
@@ -209,6 +213,7 @@ fn loadMap(filename: []const u8, data: *GameData) void {
                 .y = @intCast(i32, @divFloor(i, @intCast(usize, width))),
             };
         }
+        if (tile_value == .gem) data.game.gems += 1;
     }
 }
 
@@ -217,7 +222,7 @@ fn loadMap(filename: []const u8, data: *GameData) void {
 //------------------------------------------------------------------------------------
 
 fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
-    if (data.game.is_player_alive) {
+    if (data.game.is_player_alive and !data.game.is_level_beaten) {
         updatePlayer(data, input, delta_s);
         updateMap(data, delta_s);
     } else {
@@ -257,6 +262,13 @@ fn movePlayer(direction: Direction, data: *GameData) void {
             data.game.player_position = new_pos;
             data.game.tilemap.setTile(new_pos, .player);
             data.game.tilemap.setTile(start_pos, .space);
+            if (target_tile == .gem) {
+                data.game.gems -= 1;
+            }
+        },
+        .door_open => {
+            data.game.tilemap.setTile(start_pos, .space);
+            data.game.is_level_beaten = true;
         },
         else => {},
     }
@@ -272,9 +284,8 @@ fn updateMap(data: *GameData, delta_s: f64) void {
         while (tilemap_iterator.next()) |item| {
             if (!data.game.skip_next_tile) {
                 switch (item.value) {
-                    .boulder, .gem => {
-                        updatePhysics(item.value, item.point, data);
-                    },
+                    .boulder, .gem => updatePhysics(item.value, item.point, data),
+                    .door_closed => updateDoor(item.point, data),
                     else => {},
                 }
             } else {
@@ -282,6 +293,12 @@ fn updateMap(data: *GameData, delta_s: f64) void {
             }
         }
         data.game.map_energy = 0;
+    }
+}
+
+fn updateDoor(point: Point(i32), data: *GameData) void {
+    if (data.game.gems == 0) {
+        data.game.tilemap.setTile(point, .door_open);
     }
 }
 
@@ -308,10 +325,10 @@ fn updatePhysics(tile: Tile, point: Point(i32), data: *GameData) void {
             }
         },
         .boulder, .gem => {
-            if (falling_objects.getTile(southOf(point)) and !falling_objects.getTile(point)) {
-                falling_objects.setTile(point, true);
-                return;
-            }
+            // if (falling_objects.getTile(southOf(point)) and !falling_objects.getTile(point)) {
+            //     falling_objects.setTile(point, true);
+            //     return;
+            // }
 
             const tile_east = tilemap.getTile(eastOf(point));
             const tile_south_east = tilemap.getTile(southEastOf(point));
