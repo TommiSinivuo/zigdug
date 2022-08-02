@@ -47,6 +47,7 @@ pub fn build(b: *std.build.Builder) void {
             exe.linkSystemLibrary("Shell32"); // for MSVC
             //exe.addIncludeDir("./raylib/src/external/glfw/deps/mingw"); // for MINGW
         },
+        // TODO: Linux not verified as working
         .linux => {
             exe.addCSourceFile("./raylib/src/rglfw.c", raylib_flags);
             exe.linkSystemLibrary("GL");
@@ -55,6 +56,7 @@ pub fn build(b: *std.build.Builder) void {
             exe.linkSystemLibrary("m");
             exe.linkSystemLibrary("X11");
         },
+        // TODO: BSD's not verfied as working
         .freebsd, .openbsd, .netbsd, .dragonfly => {
             exe.addCSourceFile("./raylib/src/rglfw.c", raylib_flags);
             exe.linkSystemLibrary("GL");
@@ -68,6 +70,7 @@ pub fn build(b: *std.build.Builder) void {
             exe.linkSystemLibrary("Xxf86vm");
             exe.linkSystemLibrary("Xcursor");
         },
+        // TODO: macos builds but does not run correctly (at least on M1)
         .macos => {
             // On macos rglfw.c include Objective-C files.
             const raylib_flags_extra_macos = &[_][]const u8{
@@ -78,6 +81,11 @@ pub fn build(b: *std.build.Builder) void {
                 raylib_flags ++ raylib_flags_extra_macos,
             );
             exe.linkFramework("Foundation");
+            exe.linkFramework("Cocoa");
+            exe.linkFramework("OpenGL");
+            exe.linkFramework("CoreAudio");
+            exe.linkFramework("CoreVideo");
+            exe.linkFramework("IOKit");
         },
         else => {
             @panic("Unsupported OS");
