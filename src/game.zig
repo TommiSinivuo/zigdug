@@ -266,6 +266,23 @@ fn movePlayer(direction: Direction, data: *GameData) void {
                 data.game.gems -= 1;
             }
         },
+        .boulder => {
+            switch (direction) {
+                .right => if (data.game.tilemap.getTile(eastOf(new_pos)) == .space) {
+                    data.game.tilemap.setTile(new_pos, .player);
+                    data.game.player_position = new_pos;
+                    data.game.tilemap.setTile(eastOf(new_pos), .boulder);
+                    data.game.tilemap.setTile(start_pos, .space);
+                },
+                .left => if (data.game.tilemap.getTile(westOf(new_pos)) == .space) {
+                    data.game.tilemap.setTile(new_pos, .player);
+                    data.game.player_position = new_pos;
+                    data.game.tilemap.setTile(westOf(new_pos), .boulder);
+                    data.game.tilemap.setTile(start_pos, .space);
+                },
+                else => {},
+            }
+        },
         .door_open => {
             data.game.tilemap.setTile(start_pos, .space);
             data.game.is_level_beaten = true;
@@ -325,11 +342,6 @@ fn updatePhysics(tile: Tile, point: Point(i32), data: *GameData) void {
             }
         },
         .boulder, .gem => {
-            // if (falling_objects.getTile(southOf(point)) and !falling_objects.getTile(point)) {
-            //     falling_objects.setTile(point, true);
-            //     return;
-            // }
-
             const tile_east = tilemap.getTile(eastOf(point));
             const tile_south_east = tilemap.getTile(southEastOf(point));
             if (tile_east == .space and tile_south_east == .space) {
