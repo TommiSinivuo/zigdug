@@ -53,19 +53,19 @@ pub const Renderer = struct {
     fn drawTitle(self: *Renderer, data: *GameData) void {
 
         // background
-        ray.DrawTextureRec(
+        ray.WDrawTextureRec(
             self.spritesheet_texture,
-            spriteRectToRectangle(spritesheet.menu_background),
-            ray.Vector2{ .x = 0, .y = 0 },
-            ray.WHITE,
+            &spriteRectToRectangle(spritesheet.menu_background),
+            &ray.Vector2{ .x = 0, .y = 0 },
+            &ray.WHITE,
         );
 
         // title/logo
-        ray.DrawTextureRec(
+        ray.WDrawTextureRec(
             self.spritesheet_texture,
-            spriteRectToRectangle(spritesheet.zigdug),
-            ray.Vector2{ .x = 16, .y = 16 },
-            ray.WHITE,
+            &spriteRectToRectangle(spritesheet.zigdug),
+            &ray.Vector2{ .x = 16, .y = 16 },
+            &ray.WHITE,
         );
 
         // menu options
@@ -74,11 +74,11 @@ pub const Renderer = struct {
 
         // menu selection
         const gem_y: f32 = if (data.title.selection == .quit) 192 else 160;
-        ray.DrawTextureRec(
+        ray.WDrawTextureRec(
             self.spritesheet_texture,
-            spriteRectToRectangle(spritesheet.gem),
-            ray.Vector2{ .x = 88, .y = gem_y },
-            ray.WHITE,
+            &spriteRectToRectangle(spritesheet.gem),
+            &ray.Vector2{ .x = 88, .y = gem_y },
+            &ray.WHITE,
         );
     }
 
@@ -131,19 +131,19 @@ pub const Renderer = struct {
         const screen_position = tileToScreenCoordinates(tile_point);
 
         if (draw_backdrop) {
-            ray.DrawTextureRec(
+            ray.WDrawTextureRec(
                 self.spritesheet_texture,
-                spriteRectToRectangle(spritesheet.space),
-                screen_position,
-                ray.WHITE,
+                &spriteRectToRectangle(spritesheet.space),
+                &screen_position,
+                &ray.WHITE,
             );
         }
 
-        ray.DrawTextureRec(
+        ray.WDrawTextureRec(
             self.spritesheet_texture,
-            spriteRectToRectangle(sprite_rect),
-            screen_position,
-            ray.WHITE,
+            &spriteRectToRectangle(sprite_rect),
+            &screen_position,
+            &ray.WHITE,
         );
     }
 
@@ -154,19 +154,19 @@ pub const Renderer = struct {
     fn drawCredits(self: *Renderer) void {
 
         // background
-        ray.DrawTextureRec(
+        ray.WDrawTextureRec(
             self.spritesheet_texture,
-            spriteRectToRectangle(spritesheet.menu_background),
-            ray.Vector2{ .x = 0, .y = 0 },
-            ray.WHITE,
+            &spriteRectToRectangle(spritesheet.menu_background),
+            &ray.Vector2{ .x = 0, .y = 0 },
+            &ray.WHITE,
         );
 
         // the end
-        ray.DrawTextureRec(
+        ray.WDrawTextureRec(
             self.spritesheet_texture,
-            spriteRectToRectangle(spritesheet.the_end),
-            ray.Vector2{ .x = 16, .y = 48 },
-            ray.WHITE,
+            &spriteRectToRectangle(spritesheet.the_end),
+            &ray.Vector2{ .x = 16, .y = 48 },
+            &ray.WHITE,
         );
 
         // credits

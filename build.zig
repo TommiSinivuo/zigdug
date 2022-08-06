@@ -95,6 +95,9 @@ pub fn build(b: *std.build.Builder) void {
     // My custom raylib addons
     exe.addCSourceFile("./src/raylib_viewport.c", raylib_flags);
 
+    // Raylib C ABI workarounds
+    exe.addCSourceFile("./src/raylib_workarounds.c", raylib_flags);
+
     exe.install();
 
     const run_cmd = exe.run();
