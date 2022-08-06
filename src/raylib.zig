@@ -248,7 +248,7 @@ pub extern fn EndDrawing() void;
 
 // Timing-related functions
 pub extern fn SetTargetFPS(fps: c_int) void;
-pub extern fn GetFrameTime() f64;
+pub extern fn GetFrameTime() f32;
 pub extern fn GetTime() f64;
 
 //------------------------------------------------------------------------------------
