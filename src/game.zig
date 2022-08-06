@@ -11,6 +11,8 @@ const common = @import("common.zig");
 const Direction = common.Direction;
 const Point = common.Point;
 
+const config = @import("config.zig");
+
 //------------------------------------------------------------------------------------
 // Top level state machine
 //------------------------------------------------------------------------------------
@@ -113,6 +115,8 @@ pub const Tile = enum(u8) {
 
 pub const GameplayData = struct {
     state: GamePlaySubState = .load_map,
+    maps: [][]const u8,
+    map_index: usize = 0,
     tilemap: Tilemap(Tile),
     falling_objects: Tilemap(bool),
     player_position: Point(i32) = Point(i32){ .x = 0, .y = 0 },
@@ -139,6 +143,7 @@ pub const GameplayData = struct {
             false,
         );
         return GameplayData{
+            .maps = config.maps[0..],
             .tilemap = tilemap,
             .falling_objects = falling_objects,
         };
@@ -179,7 +184,7 @@ fn updateLoadMapState(data: *GameData) void {
     data.game.skip_next_tile = false;
     data.game.is_level_beaten = false;
     data.game.state = .play_map;
-    loadMap("data/maps/001.png", data);
+    loadMap(data.game.maps[data.game.map_index], data);
 }
 
 fn loadMap(filename: []const u8, data: *GameData) void {
@@ -233,13 +238,23 @@ fn loadMap(filename: []const u8, data: *GameData) void {
 //------------------------------------------------------------------------------------
 
 fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
-    if (data.game.is_player_alive and !data.game.is_level_beaten) {
-        updatePlayer(data, input, delta_s);
-        updateMap(data, delta_s);
-    } else {
-        data.state = .credits;
+    if (data.game.is_level_beaten) {
+        data.game.map_index += 1;
+        if (data.game.map_index >= data.game.maps.len) {
+            data.state = .credits;
+            data.game.map_index = 0;
+        }
         data.game.state = .load_map;
+        return;
     }
+
+    if (!data.game.is_player_alive) {
+        data.game.state = .load_map;
+        return;
+    }
+
+    updatePlayer(data, input, delta_s);
+    updateMap(data, delta_s);
 }
 
 fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {

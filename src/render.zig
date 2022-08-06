@@ -102,7 +102,7 @@ pub const Renderer = struct {
         var sprite_rect: spritesheet.SpriteRect = undefined;
 
         switch (tile) {
-            .none => sprite_rect = spritesheet.debug,
+            .none => sprite_rect = spritesheet.black,
             .space => sprite_rect = spritesheet.space,
             .dirt => sprite_rect = spritesheet.dirt,
             .wall => sprite_rect = spritesheet.brick,
