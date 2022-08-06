@@ -71,6 +71,20 @@ pub const RenderTexture = extern struct {
 };
 pub const RenderTexture2D = RenderTexture;
 
+pub const rAudioBuffer = opaque {};
+
+pub const AudioStream = extern struct {
+    buffer: ?*rAudioBuffer,
+    sampleRate: c_uint,
+    sampleSize: c_uint,
+    channels: c_uint,
+};
+
+pub const Sound = extern struct {
+    stream: AudioStream,
+    sampleCount: c_uint,
+};
+
 // Keyboard keys
 pub const KeyboardKey = enum(c_int) {
     KEY_NULL = 0,
@@ -291,6 +305,21 @@ pub extern fn DrawText(text: [*c]const u8, posX: c_int, posY: c_int, fontSize: c
 // Text strings management functions (no utf8 strings, only byte chars)
 // NOTE: Some strings allocate memory internally for returned strings, just be careful!
 pub extern fn TextFormat(text: [*c]const u8, ...) [*c]const u8;
+
+//------------------------------------------------------------------------------------
+// Audio Loading and Playing Functions (Module: audio)
+//------------------------------------------------------------------------------------
+
+// Audio device management functions
+pub extern fn InitAudioDevice() void;
+pub extern fn CloseAudioDevice() void;
+
+// Wave/Sound loading/unloading functions
+pub extern fn LoadSound(fileName: [*c]const u8) Sound;
+pub extern fn UnloadSound(sound: Sound) void;
+
+// Wave/Sound management functions
+pub extern fn PlaySound(sound: Sound) void;
 
 //------------------------------------------------------------------------------------
 // My custom addons

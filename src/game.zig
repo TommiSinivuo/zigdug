@@ -1,5 +1,6 @@
 const std = @import("std");
-const Allocator = std.mem.Allocator;
+const mem = std.mem;
+const Allocator = mem.Allocator;
 
 const ray = @import("raylib.zig");
 const log = std.log;
@@ -24,6 +25,7 @@ pub const GameState = enum(u8) {
 pub const GameData = struct {
     is_running: bool = true,
     state: GameState,
+    active_sounds: [n_sounds]bool = [_]bool{false} ** n_sounds,
     title: TitleData = TitleData{},
     game: GameplayData = GameplayData{},
 };
@@ -36,6 +38,14 @@ pub const GameInput = struct {
     right: bool = false,
 };
 
+const n_sounds = 3;
+
+pub const Sound = enum(u8) {
+    boulder,
+    gem,
+    move,
+};
+
 pub fn init(allocator: Allocator) !GameData {
     var gameplay_data = try GameplayData.init(allocator);
     return GameData{
@@ -45,6 +55,7 @@ pub fn init(allocator: Allocator) !GameData {
 }
 
 pub fn update(data: *GameData, input: *GameInput, delta_s: f64) void {
+    mem.set(bool, data.active_sounds[0..n_sounds], false);
     switch (data.state) {
         .title => updateTitleState(data, input),
         .play => updateGameplayState(data, input, delta_s),
@@ -264,6 +275,7 @@ fn movePlayer(direction: Direction, data: *GameData) void {
             data.game.tilemap.setTile(start_pos, .space);
             if (target_tile == .gem) {
                 data.game.gems -= 1;
+                data.active_sounds[@enumToInt(Sound.gem)] = true;
             }
         },
         .boulder => {
