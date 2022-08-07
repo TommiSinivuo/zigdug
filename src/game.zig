@@ -21,6 +21,7 @@ pub const GameState = enum(u8) {
     // Main states
     title,
     play,
+    pause,
     credits,
 };
 
@@ -30,14 +31,26 @@ pub const GameData = struct {
     active_sounds: [n_sounds]bool = [_]bool{false} ** n_sounds,
     title: TitleData = TitleData{},
     game: GameplayData = GameplayData{},
+    pause_menu: PauseMenuData = PauseMenuData{},
 };
 
 pub const GameInput = struct {
-    action: bool = false,
+    pressed: GameInputPressed = GameInputPressed{},
+    just_pressed: GameInputJustPressed = GameInputJustPressed{},
+};
+
+pub const GameInputPressed = struct {
     up: bool = false,
     down: bool = false,
     left: bool = false,
     right: bool = false,
+};
+
+pub const GameInputJustPressed = struct {
+    action: bool = false,
+    cancel: bool = false,
+    up: bool = false,
+    down: bool = false,
 };
 
 const n_sounds = 3;
@@ -61,6 +74,7 @@ pub fn update(data: *GameData, input: *GameInput, delta_s: f64) void {
     switch (data.state) {
         .title => updateTitleState(data, input),
         .play => updateGameplayState(data, input, delta_s),
+        .pause => updatePauseMenuState(data, input),
         .credits => updateCreditsState(data, input),
     }
 }
@@ -80,16 +94,16 @@ pub const TitleData = struct {
 
 fn updateTitleState(data: *GameData, input: *GameInput) void {
     // Check for selection change
-    if (data.title.selection == .play and input.down) {
+    if (data.title.selection == .play and input.just_pressed.down) {
         data.title.selection = .quit;
-    } else if (data.title.selection == .quit and input.up) {
+    } else if (data.title.selection == .quit and input.just_pressed.up) {
         data.title.selection = .play;
     }
 
     // Check for action and possibly change state or quit
-    if (data.title.selection == .play and input.action) {
+    if (data.title.selection == .play and input.just_pressed.action) {
         data.state = .play;
-    } else if (data.title.selection == .quit and input.action) {
+    } else if (data.title.selection == .quit and input.just_pressed.action) {
         data.is_running = false;
     }
 }
@@ -253,6 +267,11 @@ fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
         return;
     }
 
+    if (input.just_pressed.cancel) {
+        data.state = .pause;
+        return;
+    }
+
     updatePlayer(data, input, delta_s);
     updateMap(data, delta_s);
 }
@@ -261,12 +280,12 @@ fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
     data.game.player_energy += delta_s;
 
     if (data.game.player_energy >= player_energy_full) {
-        if (input.up or input.right or input.down or input.left) {
+        if (input.pressed.up or input.pressed.right or input.pressed.down or input.pressed.left) {
             var direction: Direction = undefined;
-            if (input.up) direction = .up;
-            if (input.right) direction = .right;
-            if (input.down) direction = .down;
-            if (input.left) direction = .left;
+            if (input.pressed.up) direction = .up;
+            if (input.pressed.right) direction = .right;
+            if (input.pressed.down) direction = .down;
+            if (input.pressed.left) direction = .left;
 
             movePlayer(direction, data);
             data.game.player_energy = 0;
@@ -460,11 +479,75 @@ fn updateFinishMapState(data: *GameData) void {
 }
 
 //------------------------------------------------------------------------------------
+// Pause menu state
+//------------------------------------------------------------------------------------
+
+pub const PauseMenuSelection = enum(u8) {
+    resume_level,
+    restart_level,
+    return_to_title,
+    quit_game,
+};
+
+pub const PauseMenuData = struct {
+    selection: PauseMenuSelection = .resume_level,
+};
+
+fn updatePauseMenuState(data: *GameData, input: *GameInput) void {
+    switch (data.pause_menu.selection) {
+        .resume_level => {
+            if (input.just_pressed.down) {
+                data.pause_menu.selection = .restart_level;
+            }
+        },
+        .restart_level => {
+            if (input.just_pressed.down) {
+                data.pause_menu.selection = .return_to_title;
+            } else if (input.just_pressed.up) {
+                data.pause_menu.selection = .resume_level;
+            }
+        },
+        .return_to_title => {
+            if (input.just_pressed.down) {
+                data.pause_menu.selection = .quit_game;
+            } else if (input.just_pressed.up) {
+                data.pause_menu.selection = .restart_level;
+            }
+        },
+        .quit_game => {
+            if (input.just_pressed.up) {
+                data.pause_menu.selection = .return_to_title;
+            }
+        },
+    }
+
+    if (input.just_pressed.action) {
+        switch (data.pause_menu.selection) {
+            .resume_level => data.state = .play,
+            .restart_level => {
+                data.game.state = .load_map;
+                data.state = .play;
+            },
+            .return_to_title => {
+                data.game.map_index = 0;
+                data.game.state = .load_map;
+                data.state = .title;
+            },
+            .quit_game => data.is_running = false,
+        }
+        data.pause_menu.selection = .resume_level;
+    } else if (input.just_pressed.cancel) {
+        data.state = .play;
+        data.pause_menu.selection = .resume_level;
+    }
+}
+
+//------------------------------------------------------------------------------------
 // End credits state
 //------------------------------------------------------------------------------------
 
 fn updateCreditsState(data: *GameData, input: *GameInput) void {
-    if (input.action) {
+    if (input.just_pressed.action) {
         data.state = .title;
     }
 }

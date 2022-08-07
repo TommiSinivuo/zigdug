@@ -260,6 +260,7 @@ pub extern fn IsKeyPressed(key: KeyboardKey) bool;
 pub extern fn IsKeyDown(key: KeyboardKey) bool;
 pub extern fn IsKeyReleased(key: KeyboardKey) bool;
 pub extern fn IsKeyUp(key: KeyboardKey) bool;
+pub extern fn SetExitKey(key: KeyboardKey) void;
 
 // Input-related functions: mouse
 pub extern fn IsMouseButtonPressed(button: MouseButton) bool;

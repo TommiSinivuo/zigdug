@@ -38,6 +38,7 @@ pub const Renderer = struct {
         switch (data.state) {
             .title => self.drawTitle(data),
             .play => self.drawGameplay(data),
+            .pause => self.drawPauseMenu(data),
             .credits => self.drawCredits(),
         }
 
@@ -143,6 +144,41 @@ pub const Renderer = struct {
             self.spritesheet_texture,
             &spriteRectToRectangle(sprite_rect),
             &screen_position,
+            &ray.WHITE,
+        );
+    }
+
+    //------------------------------------------------------------------------------------
+    // Pause menu
+    //------------------------------------------------------------------------------------
+
+    fn drawPauseMenu(self: *Renderer, data: *GameData) void {
+
+        // background
+        ray.WDrawTextureRec(
+            self.spritesheet_texture,
+            &spriteRectToRectangle(spritesheet.menu_background),
+            &ray.Vector2{ .x = 0, .y = 0 },
+            &ray.WHITE,
+        );
+
+        // menu options
+        ray.DrawText("RESUME LEVEL", 72, 72, 16, ray.RAYWHITE);
+        ray.DrawText("RESTART LEVEL", 72, 104, 16, ray.RAYWHITE);
+        ray.DrawText("TO TITLE SCREEN", 72, 136, 16, ray.RAYWHITE);
+        ray.DrawText("QUIT GAME", 72, 168, 16, ray.RAYWHITE);
+
+        // menu selection
+        const gem_y: f32 = switch (data.pause_menu.selection) {
+            .resume_level => 72,
+            .restart_level => 104,
+            .return_to_title => 136,
+            .quit_game => 168,
+        };
+        ray.WDrawTextureRec(
+            self.spritesheet_texture,
+            &spriteRectToRectangle(spritesheet.gem),
+            &ray.Vector2{ .x = 40, .y = gem_y },
             &ray.WHITE,
         );
     }

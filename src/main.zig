@@ -24,6 +24,7 @@ pub fn main() !void {
     var game_data = try game.init(allocator);
     var game_input = game.GameInput{};
 
+    ray.SetExitKey(ray.KeyboardKey.KEY_NULL);
     ray.SetTargetFPS(60);
 
     while (!ray.WindowShouldClose() and game_data.is_running) {
@@ -40,9 +41,13 @@ pub fn main() !void {
 }
 
 fn processInput(game_input: *GameInput) void {
-    game_input.action = ray.IsKeyPressed(ray.KeyboardKey.KEY_ENTER);
-    game_input.right = ray.IsKeyDown(ray.KeyboardKey.KEY_RIGHT);
-    game_input.left = ray.IsKeyDown(ray.KeyboardKey.KEY_LEFT);
-    game_input.up = ray.IsKeyDown(ray.KeyboardKey.KEY_UP);
-    game_input.down = ray.IsKeyDown(ray.KeyboardKey.KEY_DOWN);
+    game_input.pressed.right = ray.IsKeyDown(ray.KeyboardKey.KEY_RIGHT);
+    game_input.pressed.left = ray.IsKeyDown(ray.KeyboardKey.KEY_LEFT);
+    game_input.pressed.up = ray.IsKeyDown(ray.KeyboardKey.KEY_UP);
+    game_input.pressed.down = ray.IsKeyDown(ray.KeyboardKey.KEY_DOWN);
+
+    game_input.just_pressed.action = ray.IsKeyPressed(ray.KeyboardKey.KEY_ENTER);
+    game_input.just_pressed.cancel = ray.IsKeyPressed(ray.KeyboardKey.KEY_ESCAPE);
+    game_input.just_pressed.up = ray.IsKeyPressed(ray.KeyboardKey.KEY_UP);
+    game_input.just_pressed.down = ray.IsKeyPressed(ray.KeyboardKey.KEY_DOWN);
 }
