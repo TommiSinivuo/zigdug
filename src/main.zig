@@ -17,7 +17,13 @@ pub fn main() !void {
     var arena_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena_allocator.allocator();
 
-    ray.InitWindow(p_window_width, p_window_height, "Zig Dug");
+    const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
+        @enumToInt(ray.ConfigFlags.FLAG_WINDOW_UNDECORATED) |
+        @enumToInt(ray.ConfigFlags.FLAG_WINDOW_MAXIMIZED);
+    ray.SetConfigFlags(config_flags);
+    ray.InitWindow(0, 0, "Zig Dug");
+    ray.HideCursor();
+
     var renderer = Renderer.init(p_screen_width, p_screen_height);
     var audio = try Audio.init(allocator);
 
@@ -25,7 +31,7 @@ pub fn main() !void {
     var game_input = game.GameInput{};
 
     ray.SetExitKey(ray.KeyboardKey.KEY_NULL);
-    ray.SetTargetFPS(60);
+    ray.SetTargetFPS(30);
 
     while (!ray.WindowShouldClose() and game_data.is_running) {
         const delta_s = ray.GetFrameTime();

@@ -85,6 +85,24 @@ pub const Sound = extern struct {
     sampleCount: c_uint,
 };
 
+pub const ConfigFlags = enum(c_int) {
+    FLAG_VSYNC_HINT = 0x00000040,
+    FLAG_FULLSCREEN_MODE = 0x00000002,
+    FLAG_WINDOW_RESIZABLE = 0x00000004,
+    FLAG_WINDOW_UNDECORATED = 0x00000008,
+    FLAG_WINDOW_HIDDEN = 0x00000080,
+    FLAG_WINDOW_MINIMIZED = 0x00000200,
+    FLAG_WINDOW_MAXIMIZED = 0x00000400,
+    FLAG_WINDOW_UNFOCUSED = 0x00000800,
+    FLAG_WINDOW_TOPMOST = 0x00001000,
+    FLAG_WINDOW_ALWAYS_RUN = 0x00000100,
+    FLAG_WINDOW_TRANSPARENT = 0x00000010,
+    FLAG_WINDOW_HIGHDPI = 0x00002000,
+    FLAG_WINDOW_MOUSE_PASSTHROUGH = 0x00004000,
+    FLAG_MSAA_4X_HINT = 0x00000020,
+    FLAG_INTERLACED_HINT = 0x00010000,
+};
+
 // Keyboard keys
 pub const KeyboardKey = enum(c_int) {
     KEY_NULL = 0,
@@ -240,6 +258,14 @@ pub const PixelFormat = enum(c_int) {
 pub extern fn InitWindow(width: c_int, height: c_int, title: [*c]const u8) void;
 pub extern fn WindowShouldClose() bool;
 pub extern fn CloseWindow() void;
+pub extern fn SetWindowPosition(x: c_int, y: c_int) void;
+pub extern fn SetWindowSize(width: c_int, height: c_int) void;
+pub extern fn GetCurrentMonitor() c_int;
+pub extern fn GetMonitorWidth(monitor: c_int) c_int;
+pub extern fn GetMonitorHeight(monitor: c_int) c_int;
+
+// Cursor-related functions
+pub extern fn HideCursor() void;
 
 // Drawing-related functions
 pub extern fn ClearBackground(color: Color) void;
@@ -250,6 +276,9 @@ pub extern fn EndDrawing() void;
 pub extern fn SetTargetFPS(fps: c_int) void;
 pub extern fn GetFrameTime() f32;
 pub extern fn GetTime() f64;
+
+// Misc. functions
+pub extern fn SetConfigFlags(flags: c_uint) void;
 
 //------------------------------------------------------------------------------------
 // Input Handling Functions (Module: core)
