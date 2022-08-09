@@ -226,6 +226,27 @@ pub const MouseButton = enum(c_int) {
     MOUSE_MIDDLE_BUTTON = 2,
 };
 
+pub const GamepadButton = enum(c_int) {
+    GAMEPAD_BUTTON_UNKNOWN = 0,
+    GAMEPAD_BUTTON_LEFT_FACE_UP = 1,
+    GAMEPAD_BUTTON_LEFT_FACE_RIGHT = 2,
+    GAMEPAD_BUTTON_LEFT_FACE_DOWN = 3,
+    GAMEPAD_BUTTON_LEFT_FACE_LEFT = 4,
+    GAMEPAD_BUTTON_RIGHT_FACE_UP = 5,
+    GAMEPAD_BUTTON_RIGHT_FACE_RIGHT = 6,
+    GAMEPAD_BUTTON_RIGHT_FACE_DOWN = 7,
+    GAMEPAD_BUTTON_RIGHT_FACE_LEFT = 8,
+    GAMEPAD_BUTTON_LEFT_TRIGGER_1 = 9,
+    GAMEPAD_BUTTON_LEFT_TRIGGER_2 = 10,
+    GAMEPAD_BUTTON_RIGHT_TRIGGER_1 = 11,
+    GAMEPAD_BUTTON_RIGHT_TRIGGER_2 = 12,
+    GAMEPAD_BUTTON_MIDDLE_LEFT = 13,
+    GAMEPAD_BUTTON_MIDDLE = 14,
+    GAMEPAD_BUTTON_MIDDLE_RIGHT = 15,
+    GAMEPAD_BUTTON_LEFT_THUMB = 16,
+    GAMEPAD_BUTTON_RIGHT_THUMB = 17,
+};
+
 pub const PixelFormat = enum(c_int) {
     PIXELFORMAT_UNCOMPRESSED_GRAYSCALE = 1,
     PIXELFORMAT_UNCOMPRESSED_GRAY_ALPHA = 2,
@@ -290,6 +311,11 @@ pub extern fn IsKeyDown(key: KeyboardKey) bool;
 pub extern fn IsKeyReleased(key: KeyboardKey) bool;
 pub extern fn IsKeyUp(key: KeyboardKey) bool;
 pub extern fn SetExitKey(key: KeyboardKey) void;
+
+// Input-related functions: gamepads
+pub extern fn IsGamepadAvailable(gamepad: i32) bool;
+pub extern fn IsGamepadButtonPressed(gamepad: i32, button: GamepadButton) bool;
+pub extern fn IsGamepadButtonDown(gamepad: i32, button: GamepadButton) bool;
 
 // Input-related functions: mouse
 pub extern fn IsMouseButtonPressed(button: MouseButton) bool;

@@ -47,13 +47,56 @@ pub fn main() !void {
 }
 
 fn processInput(game_input: *GameInput) void {
-    game_input.pressed.right = ray.IsKeyDown(ray.KeyboardKey.KEY_RIGHT);
-    game_input.pressed.left = ray.IsKeyDown(ray.KeyboardKey.KEY_LEFT);
-    game_input.pressed.up = ray.IsKeyDown(ray.KeyboardKey.KEY_UP);
-    game_input.pressed.down = ray.IsKeyDown(ray.KeyboardKey.KEY_DOWN);
+    // Keyboard
+    const kb_game_pause = ray.IsKeyPressed(ray.KeyboardKey.KEY_ESCAPE);
+    const kb_player_up = ray.IsKeyDown(ray.KeyboardKey.KEY_UP);
+    const kb_player_right = ray.IsKeyDown(ray.KeyboardKey.KEY_RIGHT);
+    const kb_player_down = ray.IsKeyDown(ray.KeyboardKey.KEY_DOWN);
+    const kb_player_left = ray.IsKeyDown(ray.KeyboardKey.KEY_LEFT);
+    const kb_ui_confirm = ray.IsKeyPressed(ray.KeyboardKey.KEY_ENTER);
+    const kb_ui_cancel = ray.IsKeyPressed(ray.KeyboardKey.KEY_ESCAPE);
+    const kb_ui_up = ray.IsKeyPressed(ray.KeyboardKey.KEY_UP);
+    const kb_ui_right = ray.IsKeyPressed(ray.KeyboardKey.KEY_RIGHT);
+    const kb_ui_down = ray.IsKeyPressed(ray.KeyboardKey.KEY_DOWN);
+    const kb_ui_left = ray.IsKeyPressed(ray.KeyboardKey.KEY_LEFT);
 
-    game_input.just_pressed.action = ray.IsKeyPressed(ray.KeyboardKey.KEY_ENTER);
-    game_input.just_pressed.cancel = ray.IsKeyPressed(ray.KeyboardKey.KEY_ESCAPE);
-    game_input.just_pressed.up = ray.IsKeyPressed(ray.KeyboardKey.KEY_UP);
-    game_input.just_pressed.down = ray.IsKeyPressed(ray.KeyboardKey.KEY_DOWN);
+    // Gamepad
+    var gp_game_pause = false;
+    var gp_player_up = false;
+    var gp_player_right = false;
+    var gp_player_down = false;
+    var gp_player_left = false;
+    var gp_ui_confirm = false;
+    var gp_ui_cancel = false;
+    var gp_ui_up = false;
+    var gp_ui_right = false;
+    var gp_ui_down = false;
+    var gp_ui_left = false;
+
+    if (ray.IsGamepadAvailable(0)) {
+        gp_game_pause = ray.IsGamepadButtonPressed(0, ray.GamepadButton.GAMEPAD_BUTTON_MIDDLE_RIGHT);
+        gp_player_up = ray.IsGamepadButtonDown(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_UP);
+        gp_player_right = ray.IsGamepadButtonDown(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
+        gp_player_down = ray.IsGamepadButtonDown(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_DOWN);
+        gp_player_left = ray.IsGamepadButtonDown(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_LEFT);
+        gp_ui_confirm = ray.IsGamepadButtonPressed(0, ray.GamepadButton.GAMEPAD_BUTTON_RIGHT_FACE_RIGHT);
+        gp_ui_cancel = ray.IsGamepadButtonPressed(0, ray.GamepadButton.GAMEPAD_BUTTON_RIGHT_FACE_DOWN);
+        gp_ui_up = ray.IsGamepadButtonPressed(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_UP);
+        gp_ui_right = ray.IsGamepadButtonPressed(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_RIGHT);
+        gp_ui_down = ray.IsGamepadButtonPressed(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_DOWN);
+        gp_ui_left = ray.IsGamepadButtonPressed(0, ray.GamepadButton.GAMEPAD_BUTTON_LEFT_FACE_LEFT);
+    }
+
+    // Aggregate into game input
+    game_input.game_pause = kb_game_pause or gp_game_pause;
+    game_input.player_up = kb_player_up or gp_player_up;
+    game_input.player_right = kb_player_right or gp_player_right;
+    game_input.player_down = kb_player_down or gp_player_down;
+    game_input.player_left = kb_player_left or gp_player_left;
+    game_input.ui_confirm = kb_ui_confirm or gp_ui_confirm;
+    game_input.ui_cancel = kb_ui_cancel or gp_ui_cancel;
+    game_input.ui_up = kb_ui_up or gp_ui_up;
+    game_input.ui_right = kb_ui_right or gp_ui_right;
+    game_input.ui_down = kb_ui_down or gp_ui_down;
+    game_input.ui_left = kb_ui_left or gp_ui_left;
 }
