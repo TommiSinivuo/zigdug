@@ -314,10 +314,8 @@ fn tryPlayerMove(direction: Direction, data: *GameData) void {
             const target_tile = data.game.tilemap.getTile(new_pos);
             switch (target_tile) {
                 .space, .dirt, .gem => {
-                    data.game.tilemap.setTile(new_pos, .player);
-                    data.game.physics_objects.setTile(new_pos, true);
-                    data.game.tilemap.setTile(start_pos, .space);
-                    data.game.physics_objects.setTile(start_pos, false);
+                    moveEntity(start_pos, new_pos, data);
+                    createSpaceEntity(start_pos, data);
                     if (target_tile == .gem) {
                         data.game.gems -= 1;
                         data.active_sounds[@enumToInt(Sound.gem)] = true;
@@ -326,30 +324,16 @@ fn tryPlayerMove(direction: Direction, data: *GameData) void {
                 .boulder => {
                     switch (direction) {
                         .right => if (data.game.tilemap.getTile(eastOf(new_pos)) == .space) {
-                            data.game.tilemap.setTile(new_pos, .player);
-                            data.game.physics_objects.setTile(new_pos, true);
-                            data.game.round_objects.setTile(new_pos, false);
-                            data.game.tilemap.setTile(start_pos, .space);
-                            data.game.physics_objects.setTile(start_pos, false);
-                            data.game.tilemap.setTile(eastOf(new_pos), .boulder);
-                            data.game.physics_objects.setTile(eastOf(new_pos), true);
-                            data.game.round_objects.setTile(eastOf(new_pos), true);
+                            pushBoulder(start_pos, new_pos, eastOf(new_pos), data);
                         },
                         .left => if (data.game.tilemap.getTile(westOf(new_pos)) == .space) {
-                            data.game.tilemap.setTile(new_pos, .player);
-                            data.game.physics_objects.setTile(new_pos, true);
-                            data.game.round_objects.setTile(new_pos, false);
-                            data.game.tilemap.setTile(start_pos, .space);
-                            data.game.physics_objects.setTile(start_pos, false);
-                            data.game.tilemap.setTile(westOf(new_pos), .boulder);
-                            data.game.physics_objects.setTile(westOf(new_pos), true);
-                            data.game.round_objects.setTile(westOf(new_pos), true);
+                            pushBoulder(start_pos, new_pos, westOf(new_pos), data);
                         },
                         else => {},
                     }
                 },
                 .door_open => {
-                    data.game.tilemap.setTile(start_pos, .space);
+                    createSpaceEntity(start_pos, data);
                     data.game.is_level_beaten = true;
                 },
                 else => {},
@@ -362,6 +346,17 @@ fn isPlayer(tile: Tile) bool {
     return tile == .player;
 }
 
+fn pushBoulder(
+    player_origin: Point(i32),
+    boulder_origin: Point(i32),
+    boulder_target: Point(i32),
+    data: *GameData,
+) void {
+    moveEntity(boulder_origin, boulder_target, data);
+    moveEntity(player_origin, boulder_origin, data);
+    createSpaceEntity(player_origin, data);
+}
+
 fn updateMap(data: *GameData, delta_s: f64) void {
     data.game.map_energy += delta_s;
 
@@ -372,7 +367,7 @@ fn updateMap(data: *GameData, delta_s: f64) void {
         while (tilemap_iterator.next()) |item| {
             if (!data.game.skip_next_tile) {
                 if (data.game.physics_objects.getTile(item.point)) {
-                    updatePhysics(item.value, item.point, data);
+                    updatePhysics(item.point, data);
                 } else if (item.value == .door_closed) {
                     updateDoor(item.point, data);
                 }
@@ -386,13 +381,12 @@ fn updateMap(data: *GameData, delta_s: f64) void {
 
 fn updateDoor(point: Point(i32), data: *GameData) void {
     if (data.game.gems == 0) {
-        data.game.tilemap.setTile(point, .door_open);
+        createOpenDoorEntity(point, data);
     }
 }
 
-fn updatePhysics(this_tile: Tile, start_point: Point(i32), data: *GameData) void {
+fn updatePhysics(start_point: Point(i32), data: *GameData) void {
     var tilemap = data.game.tilemap;
-    var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
 
@@ -402,18 +396,8 @@ fn updatePhysics(this_tile: Tile, start_point: Point(i32), data: *GameData) void
     // Case: falls straight down
     if (tile_below == .space) {
         if (falling_objects.getTile(start_point)) {
-            tilemap.setTile(below_this_tile, this_tile);
-            tilemap.setTile(start_point, .space);
-            falling_objects.setTile(start_point, false);
-            falling_objects.setTile(below_this_tile, true);
-            if (physics_objects.getTile(start_point)) {
-                physics_objects.setTile(start_point, false);
-                physics_objects.setTile(below_this_tile, true);
-            }
-            if (round_objects.getTile(start_point)) {
-                round_objects.setTile(start_point, false);
-                round_objects.setTile(below_this_tile, true);
-            }
+            moveEntity(start_point, below_this_tile, data);
+            createSpaceEntity(start_point, data);
         } else {
             falling_objects.setTile(start_point, true);
         }
@@ -434,18 +418,8 @@ fn updatePhysics(this_tile: Tile, start_point: Point(i32), data: *GameData) void
         const tile_south_east = tilemap.getTile(southEastOf(start_point));
         if (tile_east == .space and tile_south_east == .space) {
             if (falling_objects.getTile(start_point)) {
-                tilemap.setTile(eastOf(start_point), this_tile);
-                tilemap.setTile(start_point, .space);
-                falling_objects.setTile(start_point, false);
-                falling_objects.setTile(eastOf(start_point), true);
-                if (physics_objects.getTile(start_point)) {
-                    physics_objects.setTile(start_point, false);
-                    physics_objects.setTile(eastOf(start_point), true);
-                }
-                if (round_objects.getTile(start_point)) {
-                    round_objects.setTile(start_point, false);
-                    round_objects.setTile(eastOf(start_point), true);
-                }
+                moveEntity(start_point, eastOf(start_point), data);
+                createSpaceEntity(start_point, data);
             } else {
                 falling_objects.setTile(start_point, true);
             }
@@ -456,18 +430,8 @@ fn updatePhysics(this_tile: Tile, start_point: Point(i32), data: *GameData) void
         const tile_south_west = tilemap.getTile(southWestOf(start_point));
         if (tile_west == .space and tile_south_west == .space) {
             if (falling_objects.getTile(start_point)) {
-                tilemap.setTile(westOf(start_point), this_tile);
-                tilemap.setTile(start_point, .space);
-                falling_objects.setTile(start_point, false);
-                falling_objects.setTile(westOf(start_point), true);
-                if (physics_objects.getTile(start_point)) {
-                    physics_objects.setTile(start_point, false);
-                    physics_objects.setTile(westOf(start_point), true);
-                }
-                if (round_objects.getTile(start_point)) {
-                    round_objects.setTile(start_point, false);
-                    round_objects.setTile(westOf(start_point), true);
-                }
+                moveEntity(start_point, westOf(start_point), data);
+                createSpaceEntity(start_point, data);
                 data.game.skip_next_tile = true;
             } else {
                 falling_objects.setTile(start_point, true);
@@ -636,7 +600,22 @@ fn createPlayerEntity(point: Point(i32), data: *GameData) void {
     falling_objects.setTile(point, false);
 }
 
-fn moveEntity(_: Point(i32), _: Point(i32), _: *GameData) void {}
+fn moveEntity(start: Point(i32), destination: Point(i32), data: *GameData) void {
+    var tilemap = data.game.tilemap;
+    var physics_objects = data.game.physics_objects;
+    var round_objects = data.game.round_objects;
+    var falling_objects = data.game.falling_objects;
+
+    tilemap.setTile(destination, tilemap.getTile(start));
+    physics_objects.setTile(destination, physics_objects.getTile(start));
+    round_objects.setTile(destination, round_objects.getTile(start));
+    falling_objects.setTile(destination, falling_objects.getTile(start));
+
+    tilemap.setTile(start, tilemap.null_value);
+    physics_objects.setTile(start, false);
+    round_objects.setTile(start, false);
+    falling_objects.setTile(start, false);
+}
 
 //------------------------------------------------------------------------------------
 // Finish map sub state
