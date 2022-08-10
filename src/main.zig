@@ -18,8 +18,7 @@ pub fn main() !void {
     const allocator = arena_allocator.allocator();
 
     const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
-        @enumToInt(ray.ConfigFlags.FLAG_WINDOW_UNDECORATED) |
-        @enumToInt(ray.ConfigFlags.FLAG_WINDOW_MAXIMIZED);
+        @enumToInt(ray.ConfigFlags.FLAG_FULLSCREEN_MODE);
     ray.SetConfigFlags(config_flags);
     ray.InitWindow(0, 0, "Zig Dug");
     ray.HideCursor();
