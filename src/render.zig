@@ -2,6 +2,8 @@ const ray = @import("raylib.zig");
 const spritesheet = @import("spritesheet.zig");
 const game = @import("game.zig");
 const GameData = game.GameData;
+const Tile = game.Tile;
+const Tilemap = @import("tilemap.zig").Tilemap;
 const Point = @import("common.zig").Point;
 
 const p_tile_size = 16;
@@ -90,7 +92,11 @@ pub const Renderer = struct {
     fn drawGameplay(self: *Renderer, data: *GameData) void {
         ray.ClearBackground(ray.BLACK);
 
-        var tilemap = data.game.tilemap;
+        self.drawTilemap(&data.game.background_map);
+        self.drawTilemap(&data.game.tilemap);
+    }
+
+    fn drawTilemap(self: *Renderer, tilemap: *Tilemap(Tile)) void {
         var tilemap_iterator = tilemap.iteratorForward();
 
         while (tilemap_iterator.next()) |item| {
@@ -99,53 +105,31 @@ pub const Renderer = struct {
     }
 
     fn drawTile(self: *Renderer, tile: game.Tile, tile_point: Point(i32)) void {
-        var draw_backdrop = false; // If tile has transparency, then we want to draw a background for it
-        var sprite_rect: spritesheet.SpriteRect = undefined;
+        const optional_sprite_rect: ?spritesheet.SpriteRect = switch (tile) {
+            .none => spritesheet.black,
+            .back_wall => spritesheet.back_wall,
+            .boulder => spritesheet.boulder,
+            .dirt => spritesheet.dirt,
+            .door_closed => spritesheet.door_closed,
+            .door_open => spritesheet.door_open,
+            .gem => spritesheet.gem,
+            .ladder => spritesheet.ladder,
+            .player => spritesheet.player,
+            .space => null,
+            .wall => spritesheet.wall,
+            .debug => spritesheet.debug,
+        };
 
-        switch (tile) {
-            .none => sprite_rect = spritesheet.black,
-            .space => sprite_rect = spritesheet.space,
-            .dirt => sprite_rect = spritesheet.dirt,
-            .wall => sprite_rect = spritesheet.brick,
-            .boulder => {
-                sprite_rect = spritesheet.boulder;
-                draw_backdrop = true;
-            },
-            .gem => {
-                sprite_rect = spritesheet.gem;
-                draw_backdrop = true;
-            },
-            .door_closed => {
-                sprite_rect = spritesheet.door_closed;
-                draw_backdrop = true;
-            },
-            .door_open => {
-                sprite_rect = spritesheet.door_open;
-                draw_backdrop = true;
-            },
-            .player => {
-                sprite_rect = spritesheet.player;
-                draw_backdrop = true;
-            },
-        }
+        if (optional_sprite_rect) |sprite_rect| {
+            const screen_position = tileToScreenCoordinates(tile_point);
 
-        const screen_position = tileToScreenCoordinates(tile_point);
-
-        if (draw_backdrop) {
             ray.WDrawTextureRec(
                 self.spritesheet_texture,
-                &spriteRectToRectangle(spritesheet.space),
+                &spriteRectToRectangle(sprite_rect),
                 &screen_position,
                 &ray.WHITE,
             );
         }
-
-        ray.WDrawTextureRec(
-            self.spritesheet_texture,
-            &spriteRectToRectangle(sprite_rect),
-            &screen_position,
-            &ray.WHITE,
-        );
     }
 
     //------------------------------------------------------------------------------------

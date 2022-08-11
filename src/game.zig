@@ -114,24 +114,30 @@ pub const tilemap_height = 16;
 
 pub const Tile = enum(u8) {
     none,
-    space,
-    dirt,
-    wall,
+    back_wall,
     boulder,
-    gem,
+    dirt,
     door_closed,
     door_open,
+    gem,
+    ladder,
     player,
+    space,
+    wall,
+    debug,
 };
 
 pub const GameplayData = struct {
     state: GamePlaySubState = .load_map,
     maps: [][]const u8,
     map_index: usize = 0,
+    background_map: Tilemap(Tile),
     tilemap: Tilemap(Tile),
     falling_objects: Tilemap(bool),
     physics_objects: Tilemap(bool),
     round_objects: Tilemap(bool),
+    climbable_components: Tilemap(bool),
+    climber_components: Tilemap(bool),
     is_player_alive: bool = true,
     player_energy: f64 = 1.0 / 6.0,
     map_energy: f64 = 0,
@@ -140,6 +146,13 @@ pub const GameplayData = struct {
     is_level_beaten: bool = false,
 
     pub fn init(allocator: Allocator) !GameplayData {
+        const background_map = try Tilemap(Tile).init(
+            allocator,
+            tilemap_width,
+            tilemap_height,
+            1,
+            Tile.none,
+        );
         const tilemap = try Tilemap(Tile).init(
             allocator,
             tilemap_width,
@@ -168,12 +181,29 @@ pub const GameplayData = struct {
             1,
             false,
         );
+        const climbable_components = try Tilemap(bool).init(
+            allocator,
+            tilemap_width,
+            tilemap_height,
+            1,
+            false,
+        );
+        const climber_components = try Tilemap(bool).init(
+            allocator,
+            tilemap_width,
+            tilemap_height,
+            1,
+            false,
+        );
         return GameplayData{
             .maps = config.maps[0..],
+            .background_map = background_map,
             .tilemap = tilemap,
             .falling_objects = falling_objects,
             .physics_objects = physics_objects,
             .round_objects = round_objects,
+            .climbable_components = climbable_components,
+            .climber_components = climber_components,
         };
     }
 };
@@ -205,9 +235,13 @@ pub const GamePlaySubState = enum(u8) {
 
 fn updateLoadMapState(data: *GameData) void {
     data.game.gems = 0;
+    data.game.background_map.setTiles(.none);
+    data.game.tilemap.setTiles(.none);
     data.game.physics_objects.setTiles(false);
     data.game.round_objects.setTiles(false);
     data.game.falling_objects.setTiles(false);
+    data.game.climbable_components.setTiles(false);
+    data.game.climber_components.setTiles(false);
     data.game.is_player_alive = true;
     data.game.player_energy = 1.0 / 6.0;
     data.game.map_energy = 0;
@@ -244,14 +278,36 @@ fn loadMap(filename: []const u8, data: *GameData) void {
         };
         switch (pixel_value) {
             0xFF000000 => createVoidEntity(tilemap_point, data),
-            0xFF532B1D => createSpaceEntity(tilemap_point, data),
-            0xFF3652AB => createDirtEntity(tilemap_point, data),
+            0xFF532B1D => {
+                createBackWallEntity(tilemap_point, data);
+                createSpaceEntity(tilemap_point, data);
+            },
+            0xFF3652AB => {
+                createBackWallEntity(tilemap_point, data);
+                createDirtEntity(tilemap_point, data);
+            },
             0xFF27ECFF => createWallEntity(tilemap_point, data),
-            0xFFC7C3C2 => createBoulderEntity(tilemap_point, data),
-            0xFF4D00FF => createGemEntity(tilemap_point, data),
-            0xFFE8F1FF => createPlayerEntity(tilemap_point, data),
-            0xFFA877FF => createClosedDoorEntity(tilemap_point, data),
-            else => createVoidEntity(tilemap_point, data),
+            0xFFC7C3C2 => {
+                createBackWallEntity(tilemap_point, data);
+                createBoulderEntity(tilemap_point, data);
+            },
+            0xFF4D00FF => {
+                createBackWallEntity(tilemap_point, data);
+                createGemEntity(tilemap_point, data);
+            },
+            0xFFE8F1FF => {
+                createBackWallEntity(tilemap_point, data);
+                createPlayerEntity(tilemap_point, data);
+            },
+            0xFFA877FF => {
+                createBackWallEntity(tilemap_point, data);
+                createClosedDoorEntity(tilemap_point, data);
+            },
+            0xFF53257E => {
+                createLadderEntity(tilemap_point, data);
+                createSpaceEntity(tilemap_point, data);
+            },
+            else => createDebugEntity(tilemap_point, data),
         }
     }
 }
@@ -303,41 +359,63 @@ fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
 }
 
 fn tryPlayerMove(direction: Direction, data: *GameData) void {
-    if (data.game.tilemap.findFirst(isPlayer)) |start_pos| {
-        if (!data.game.falling_objects.getTile(start_pos)) {
-            const new_pos = switch (direction) {
-                .down => southOf(start_pos),
-                .left => westOf(start_pos),
-                .right => eastOf(start_pos),
-                .up => northOf(start_pos),
-            };
-            const target_tile = data.game.tilemap.getTile(new_pos);
-            switch (target_tile) {
-                .space, .dirt, .gem => {
-                    moveEntity(start_pos, new_pos, data);
-                    createSpaceEntity(start_pos, data);
-                    if (target_tile == .gem) {
-                        data.game.gems -= 1;
-                        data.active_sounds[@enumToInt(Sound.gem)] = true;
-                    }
-                },
-                .boulder => {
-                    switch (direction) {
-                        .right => if (data.game.tilemap.getTile(eastOf(new_pos)) == .space) {
-                            pushBoulder(start_pos, new_pos, eastOf(new_pos), data);
-                        },
-                        .left => if (data.game.tilemap.getTile(westOf(new_pos)) == .space) {
-                            pushBoulder(start_pos, new_pos, westOf(new_pos), data);
-                        },
-                        else => {},
-                    }
-                },
-                .door_open => {
-                    createSpaceEntity(start_pos, data);
-                    data.game.is_level_beaten = true;
-                },
-                else => {},
+    var tilemap = data.game.tilemap;
+    var falling_objects = data.game.falling_objects;
+    var climbable_components = data.game.climbable_components;
+
+    if (tilemap.findFirst(isPlayer)) |start_pos| {
+        if (falling_objects.getTile(start_pos)) {
+            if (!(tilemap.getTile(southOf(start_pos)) == .space) or climbable_components.getTile(start_pos)) {
+                falling_objects.setTile(start_pos, false);
+            } else {
+                return;
             }
+        }
+        switch (direction) {
+            .up => {
+                const above = northOf(start_pos);
+                if (climbable_components.getTile(start_pos) and climbable_components.getTile(above)) {
+                    moveEntity(start_pos, above, data);
+                    createSpaceEntity(start_pos, data);
+                } else if (tilemap.getTile(above) == .dirt) {
+                    createSpaceEntity(above, data);
+                }
+            },
+            else => {
+                const new_pos = switch (direction) {
+                    .down => southOf(start_pos),
+                    .left => westOf(start_pos),
+                    .right => eastOf(start_pos),
+                    .up => unreachable,
+                };
+                const target_tile = tilemap.getTile(new_pos);
+                switch (target_tile) {
+                    .space, .dirt, .gem => {
+                        moveEntity(start_pos, new_pos, data);
+                        createSpaceEntity(start_pos, data);
+                        if (target_tile == .gem) {
+                            data.game.gems -= 1;
+                            data.active_sounds[@enumToInt(Sound.gem)] = true;
+                        }
+                    },
+                    .boulder => {
+                        switch (direction) {
+                            .right => if (tilemap.getTile(eastOf(new_pos)) == .space) {
+                                pushBoulder(start_pos, new_pos, eastOf(new_pos), data);
+                            },
+                            .left => if (tilemap.getTile(westOf(new_pos)) == .space) {
+                                pushBoulder(start_pos, new_pos, westOf(new_pos), data);
+                            },
+                            else => {},
+                        }
+                    },
+                    .door_open => {
+                        createSpaceEntity(start_pos, data);
+                        data.game.is_level_beaten = true;
+                    },
+                    else => {},
+                }
+            },
         }
     }
 }
@@ -387,13 +465,20 @@ fn updateDoor(point: Point(i32), data: *GameData) void {
 
 fn updatePhysics(start_point: Point(i32), data: *GameData) void {
     var tilemap = data.game.tilemap;
+    var climbable_components = data.game.climbable_components;
+    var climber_components = data.game.climber_components;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+
+    // Case: entity can climb
+    if (climbable_components.getTile(start_point) and climber_components.getTile(start_point)) {
+        return;
+    }
 
     const below_this_tile = southOf(start_point);
     const tile_below = tilemap.getTile(below_this_tile);
 
-    // Case: falls straight down
+    // Case: entity falls straight down
     if (tile_below == .space) {
         if (falling_objects.getTile(start_point)) {
             moveEntity(start_point, below_this_tile, data);
@@ -404,7 +489,7 @@ fn updatePhysics(start_point: Point(i32), data: *GameData) void {
         return;
     }
 
-    // Case: falls on player
+    // Case: entity falls on player
     if (tile_below == .player) {
         if (falling_objects.getTile(start_point)) {
             data.game.is_player_alive = false;
@@ -412,7 +497,7 @@ fn updatePhysics(start_point: Point(i32), data: *GameData) void {
         return;
     }
 
-    // Case: rolls off round object
+    // Case: round entity rolls off another round entity
     if (round_objects.getTile(start_point) and round_objects.getTile(below_this_tile)) {
         const tile_east = tilemap.getTile(eastOf(start_point));
         const tile_south_east = tilemap.getTile(southEastOf(start_point));
@@ -492,14 +577,20 @@ fn northWestOf(pos: Point(i32)) Point(i32) {
 
 fn createVoidEntity(point: Point(i32), data: *GameData) void {
     var tilemap = data.game.tilemap;
+    var background_map = data.game.background_map;
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climbable_components = data.game.climbable_components;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .none);
+    background_map.setTile(point, .none);
     physics_objects.setTile(point, false);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
+    climbable_components.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn createSpaceEntity(point: Point(i32), data: *GameData) void {
@@ -507,11 +598,13 @@ fn createSpaceEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .space);
     physics_objects.setTile(point, false);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn createWallEntity(point: Point(i32), data: *GameData) void {
@@ -519,11 +612,13 @@ fn createWallEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .wall);
     physics_objects.setTile(point, false);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn createDirtEntity(point: Point(i32), data: *GameData) void {
@@ -531,11 +626,13 @@ fn createDirtEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .dirt);
     physics_objects.setTile(point, false);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn createBoulderEntity(point: Point(i32), data: *GameData) void {
@@ -543,11 +640,13 @@ fn createBoulderEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .boulder);
     physics_objects.setTile(point, true);
     round_objects.setTile(point, true);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn createGemEntity(point: Point(i32), data: *GameData) void {
@@ -555,11 +654,13 @@ fn createGemEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .gem);
     physics_objects.setTile(point, true);
     round_objects.setTile(point, true);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, false);
 
     data.game.gems += 1;
 }
@@ -569,11 +670,13 @@ fn createClosedDoorEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .door_closed);
     physics_objects.setTile(point, false);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn createOpenDoorEntity(point: Point(i32), data: *GameData) void {
@@ -581,11 +684,45 @@ fn createOpenDoorEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .door_open);
     physics_objects.setTile(point, false);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, false);
+}
+
+fn createLadderEntity(point: Point(i32), data: *GameData) void {
+    var background_map = data.game.background_map;
+    var physics_objects = data.game.physics_objects;
+    var round_objects = data.game.round_objects;
+    var falling_objects = data.game.falling_objects;
+    var climbable_components = data.game.climbable_components;
+    var climber_components = data.game.climber_components;
+
+    background_map.setTile(point, .ladder);
+    physics_objects.setTile(point, false);
+    round_objects.setTile(point, false);
+    falling_objects.setTile(point, false);
+    climbable_components.setTile(point, true);
+    climber_components.setTile(point, false);
+}
+
+fn createBackWallEntity(point: Point(i32), data: *GameData) void {
+    var background_map = data.game.background_map;
+    var physics_objects = data.game.physics_objects;
+    var round_objects = data.game.round_objects;
+    var falling_objects = data.game.falling_objects;
+    var climbable_components = data.game.climbable_components;
+    var climber_components = data.game.climber_components;
+
+    background_map.setTile(point, .back_wall);
+    physics_objects.setTile(point, false);
+    round_objects.setTile(point, false);
+    falling_objects.setTile(point, false);
+    climbable_components.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn createPlayerEntity(point: Point(i32), data: *GameData) void {
@@ -593,11 +730,31 @@ fn createPlayerEntity(point: Point(i32), data: *GameData) void {
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(point, .player);
     physics_objects.setTile(point, true);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
+    climber_components.setTile(point, true);
+}
+
+fn createDebugEntity(point: Point(i32), data: *GameData) void {
+    var tilemap = data.game.tilemap;
+    var background_map = data.game.background_map;
+    var physics_objects = data.game.physics_objects;
+    var round_objects = data.game.round_objects;
+    var falling_objects = data.game.falling_objects;
+    var climbable_components = data.game.climbable_components;
+    var climber_components = data.game.climber_components;
+
+    background_map.setTile(point, .debug);
+    tilemap.setTile(point, .debug);
+    physics_objects.setTile(point, false);
+    round_objects.setTile(point, false);
+    falling_objects.setTile(point, false);
+    climbable_components.setTile(point, false);
+    climber_components.setTile(point, false);
 }
 
 fn moveEntity(start: Point(i32), destination: Point(i32), data: *GameData) void {
@@ -605,16 +762,19 @@ fn moveEntity(start: Point(i32), destination: Point(i32), data: *GameData) void 
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
+    var climber_components = data.game.climber_components;
 
     tilemap.setTile(destination, tilemap.getTile(start));
     physics_objects.setTile(destination, physics_objects.getTile(start));
     round_objects.setTile(destination, round_objects.getTile(start));
     falling_objects.setTile(destination, falling_objects.getTile(start));
+    climber_components.setTile(destination, climber_components.getTile(start));
 
     tilemap.setTile(start, tilemap.null_value);
     physics_objects.setTile(start, false);
     round_objects.setTile(start, false);
     falling_objects.setTile(start, false);
+    climber_components.setTile(start, false);
 }
 
 //------------------------------------------------------------------------------------

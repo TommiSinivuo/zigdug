@@ -173,8 +173,10 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
+            <key type="filename">png/back_wall.png</key>
+            <key type="filename">png/black.png</key>
             <key type="filename">png/boulder.png</key>
-            <key type="filename">png/brick.png</key>
+            <key type="filename">png/debug.png</key>
             <key type="filename">png/dirt.png</key>
             <key type="filename">png/dirt_edge_east.png</key>
             <key type="filename">png/dirt_edge_horizontal.png</key>
@@ -194,8 +196,10 @@
             <key type="filename">png/door_closed.png</key>
             <key type="filename">png/door_open.png</key>
             <key type="filename">png/gem.png</key>
+            <key type="filename">png/key.png</key>
+            <key type="filename">png/ladder.png</key>
             <key type="filename">png/player.png</key>
-            <key type="filename">png/space.png</key>
+            <key type="filename">png/wall.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>

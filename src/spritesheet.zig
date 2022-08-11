@@ -2,7 +2,7 @@
 //
 // Sprite sheet: spritesheet.png (256 x 480)
 //
-// $TexturePacker:SmartUpdate:cb60f8dc53b1fe2793aa3bbfe5f81242:64bfac630d636dc6305e147f2a93824e:1b6881295bff6f61dedfffcb681fdac5$
+// $TexturePacker:SmartUpdate:6bdaedc5abe8d5112b480f390e97397f:d62dda36286a02f02194a352392b3a92:1b6881295bff6f61dedfffcb681fdac5$
 
 pub const SpriteRect = struct {
     x: i32,
@@ -12,21 +12,21 @@ pub const SpriteRect = struct {
 };
 
 
-pub const black: SpriteRect = SpriteRect{
+pub const back_wall: SpriteRect = SpriteRect{
     .x = 224,
     .y = 256,
     .width = 16,
     .height = 16,
 };
 
-pub const boulder: SpriteRect = SpriteRect{
+pub const black: SpriteRect = SpriteRect{
     .x = 240,
     .y = 256,
     .width = 16,
     .height = 16,
 };
 
-pub const brick: SpriteRect = SpriteRect{
+pub const boulder: SpriteRect = SpriteRect{
     .x = 224,
     .y = 272,
     .width = 16,
@@ -173,6 +173,20 @@ pub const gem: SpriteRect = SpriteRect{
     .height = 16,
 };
 
+pub const key: SpriteRect = SpriteRect{
+    .x = 240,
+    .y = 432,
+    .width = 16,
+    .height = 16,
+};
+
+pub const ladder: SpriteRect = SpriteRect{
+    .x = 224,
+    .y = 448,
+    .width = 16,
+    .height = 16,
+};
+
 pub const menu_background: SpriteRect = SpriteRect{
     .x = 0,
     .y = 0,
@@ -182,13 +196,6 @@ pub const menu_background: SpriteRect = SpriteRect{
 
 pub const player: SpriteRect = SpriteRect{
     .x = 240,
-    .y = 432,
-    .width = 16,
-    .height = 16,
-};
-
-pub const space: SpriteRect = SpriteRect{
-    .x = 224,
     .y = 448,
     .width = 16,
     .height = 16,
@@ -199,6 +206,13 @@ pub const the_end: SpriteRect = SpriteRect{
     .y = 256,
     .width = 224,
     .height = 112,
+};
+
+pub const wall: SpriteRect = SpriteRect{
+    .x = 224,
+    .y = 464,
+    .width = 16,
+    .height = 16,
 };
 
 pub const zigdug: SpriteRect = SpriteRect{
