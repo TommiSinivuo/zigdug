@@ -17,10 +17,10 @@ pub fn main() !void {
     var arena_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena_allocator.allocator();
 
-    const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
-        @enumToInt(ray.ConfigFlags.FLAG_FULLSCREEN_MODE);
+    const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT); // |
+    //@enumToInt(ray.ConfigFlags.FLAG_FULLSCREEN_MODE);
     ray.SetConfigFlags(config_flags);
-    ray.InitWindow(0, 0, "Zig Dug");
+    ray.InitWindow(p_window_width, p_window_height, "Zig Dug");
     ray.HideCursor();
 
     var renderer = Renderer.init(p_screen_width, p_screen_height);
