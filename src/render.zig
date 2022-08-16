@@ -58,7 +58,7 @@ pub const Renderer = struct {
         // background
         ray.WDrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.menu_background),
+            &spriteRectToRectangle(spritesheet.ui_background),
             &ray.Vector2{ .x = 0, .y = 0 },
             &ray.WHITE,
         );
@@ -66,7 +66,7 @@ pub const Renderer = struct {
         // title/logo
         ray.WDrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.zigdug),
+            &spriteRectToRectangle(spritesheet.zigdug_logo),
             &ray.Vector2{ .x = 16, .y = 16 },
             &ray.WHITE,
         );
@@ -112,7 +112,7 @@ pub const Renderer = struct {
             .dirt => spritesheet.dirt,
             .door_closed => spritesheet.door_closed,
             .door_open => spritesheet.door_open,
-            .gem => spritesheet.gem,
+            .key => spritesheet.key,
             .ladder => spritesheet.ladder,
             .player => spritesheet.player,
             .space => null,
@@ -141,7 +141,7 @@ pub const Renderer = struct {
         // background
         ray.WDrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.menu_background),
+            &spriteRectToRectangle(spritesheet.ui_background),
             &ray.Vector2{ .x = 0, .y = 0 },
             &ray.WHITE,
         );
@@ -176,7 +176,7 @@ pub const Renderer = struct {
         // background
         ray.WDrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.menu_background),
+            &spriteRectToRectangle(spritesheet.ui_background),
             &ray.Vector2{ .x = 0, .y = 0 },
             &ray.WHITE,
         );

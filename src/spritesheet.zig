@@ -2,7 +2,7 @@
 //
 // Sprite sheet: spritesheet.png (256 x 480)
 //
-// $TexturePacker:SmartUpdate:6bdaedc5abe8d5112b480f390e97397f:d62dda36286a02f02194a352392b3a92:1b6881295bff6f61dedfffcb681fdac5$
+// $TexturePacker:SmartUpdate:3989c05d3fe7cb6e68f664eb67731366:70968e1da57409bc1e3032a40f127a09:1b6881295bff6f61dedfffcb681fdac5$
 
 pub const SpriteRect = struct {
     x: i32,
@@ -187,13 +187,6 @@ pub const ladder: SpriteRect = SpriteRect{
     .height = 16,
 };
 
-pub const menu_background: SpriteRect = SpriteRect{
-    .x = 0,
-    .y = 0,
-    .width = 256,
-    .height = 256,
-};
-
 pub const player: SpriteRect = SpriteRect{
     .x = 240,
     .y = 448,
@@ -208,6 +201,13 @@ pub const the_end: SpriteRect = SpriteRect{
     .height = 112,
 };
 
+pub const ui_background: SpriteRect = SpriteRect{
+    .x = 0,
+    .y = 0,
+    .width = 256,
+    .height = 256,
+};
+
 pub const wall: SpriteRect = SpriteRect{
     .x = 224,
     .y = 464,
@@ -215,7 +215,7 @@ pub const wall: SpriteRect = SpriteRect{
     .height = 16,
 };
 
-pub const zigdug: SpriteRect = SpriteRect{
+pub const zigdug_logo: SpriteRect = SpriteRect{
     .x = 0,
     .y = 368,
     .width = 224,

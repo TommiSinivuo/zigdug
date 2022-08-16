@@ -119,7 +119,7 @@ pub const Tile = enum(u8) {
     dirt,
     door_closed,
     door_open,
-    gem,
+    key,
     ladder,
     player,
     space,
@@ -142,7 +142,7 @@ pub const GameplayData = struct {
     player_energy: f64 = 1.0 / 6.0,
     map_energy: f64 = 0,
     skip_next_tile: bool = false,
-    gems: i32 = 0,
+    keys: i32 = 0,
     is_level_beaten: bool = false,
 
     pub fn init(allocator: Allocator) !GameplayData {
@@ -234,7 +234,7 @@ pub const GamePlaySubState = enum(u8) {
 //------------------------------------------------------------------------------------
 
 fn updateLoadMapState(data: *GameData) void {
-    data.game.gems = 0;
+    data.game.keys = 0;
     data.game.background_map.setTiles(.none);
     data.game.tilemap.setTiles(.none);
     data.game.physics_objects.setTiles(false);
@@ -293,7 +293,7 @@ fn loadMap(filename: []const u8, data: *GameData) void {
             },
             0xFF4D00FF => {
                 createBackWallEntity(tilemap_point, data);
-                createGemEntity(tilemap_point, data);
+                createKeyEntity(tilemap_point, data);
             },
             0xFFE8F1FF => {
                 createBackWallEntity(tilemap_point, data);
@@ -390,11 +390,11 @@ fn tryPlayerMove(direction: Direction, data: *GameData) void {
                 };
                 const target_tile = tilemap.getTile(new_pos);
                 switch (target_tile) {
-                    .space, .dirt, .gem => {
+                    .space, .dirt, .key => {
                         moveEntity(start_pos, new_pos, data);
                         createSpaceEntity(start_pos, data);
-                        if (target_tile == .gem) {
-                            data.game.gems -= 1;
+                        if (target_tile == .key) {
+                            data.game.keys -= 1;
                             data.active_sounds[@enumToInt(Sound.gem)] = true;
                         }
                     },
@@ -458,7 +458,7 @@ fn updateMap(data: *GameData, delta_s: f64) void {
 }
 
 fn updateDoor(point: Point(i32), data: *GameData) void {
-    if (data.game.gems == 0) {
+    if (data.game.keys == 0) {
         createOpenDoorEntity(point, data);
     }
 }
@@ -649,20 +649,20 @@ fn createBoulderEntity(point: Point(i32), data: *GameData) void {
     climber_components.setTile(point, false);
 }
 
-fn createGemEntity(point: Point(i32), data: *GameData) void {
+fn createKeyEntity(point: Point(i32), data: *GameData) void {
     var tilemap = data.game.tilemap;
     var physics_objects = data.game.physics_objects;
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
     var climber_components = data.game.climber_components;
 
-    tilemap.setTile(point, .gem);
+    tilemap.setTile(point, .key);
     physics_objects.setTile(point, true);
     round_objects.setTile(point, true);
     falling_objects.setTile(point, false);
     climber_components.setTile(point, false);
 
-    data.game.gems += 1;
+    data.game.keys += 1;
 }
 
 fn createClosedDoorEntity(point: Point(i32), data: *GameData) void {

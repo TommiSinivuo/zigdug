@@ -173,33 +173,33 @@
         </struct>
         <key>individualSpriteSettings</key>
         <map type="IndividualSpriteSettingsMap">
-            <key type="filename">png/back_wall.png</key>
-            <key type="filename">png/black.png</key>
-            <key type="filename">png/boulder.png</key>
-            <key type="filename">png/debug.png</key>
-            <key type="filename">png/dirt.png</key>
-            <key type="filename">png/dirt_edge_east.png</key>
-            <key type="filename">png/dirt_edge_horizontal.png</key>
-            <key type="filename">png/dirt_edge_north.png</key>
-            <key type="filename">png/dirt_edge_north_east.png</key>
-            <key type="filename">png/dirt_edge_north_west.png</key>
-            <key type="filename">png/dirt_edge_south.png</key>
-            <key type="filename">png/dirt_edge_south_east.png</key>
-            <key type="filename">png/dirt_edge_south_west.png</key>
-            <key type="filename">png/dirt_edge_vertical.png</key>
-            <key type="filename">png/dirt_edge_west.png</key>
-            <key type="filename">png/dirt_lonely.png</key>
-            <key type="filename">png/dirt_spike_east.png</key>
-            <key type="filename">png/dirt_spike_north.png</key>
-            <key type="filename">png/dirt_spike_south.png</key>
-            <key type="filename">png/dirt_spike_west.png</key>
-            <key type="filename">png/door_closed.png</key>
-            <key type="filename">png/door_open.png</key>
-            <key type="filename">png/gem.png</key>
-            <key type="filename">png/key.png</key>
-            <key type="filename">png/ladder.png</key>
-            <key type="filename">png/player.png</key>
-            <key type="filename">png/wall.png</key>
+            <key type="filename">16x16/png/back_wall.png</key>
+            <key type="filename">16x16/png/black.png</key>
+            <key type="filename">16x16/png/boulder.png</key>
+            <key type="filename">16x16/png/debug.png</key>
+            <key type="filename">16x16/png/dirt.png</key>
+            <key type="filename">16x16/png/dirt_edge_east.png</key>
+            <key type="filename">16x16/png/dirt_edge_horizontal.png</key>
+            <key type="filename">16x16/png/dirt_edge_north.png</key>
+            <key type="filename">16x16/png/dirt_edge_north_east.png</key>
+            <key type="filename">16x16/png/dirt_edge_north_west.png</key>
+            <key type="filename">16x16/png/dirt_edge_south.png</key>
+            <key type="filename">16x16/png/dirt_edge_south_east.png</key>
+            <key type="filename">16x16/png/dirt_edge_south_west.png</key>
+            <key type="filename">16x16/png/dirt_edge_vertical.png</key>
+            <key type="filename">16x16/png/dirt_edge_west.png</key>
+            <key type="filename">16x16/png/dirt_lonely.png</key>
+            <key type="filename">16x16/png/dirt_spike_east.png</key>
+            <key type="filename">16x16/png/dirt_spike_north.png</key>
+            <key type="filename">16x16/png/dirt_spike_south.png</key>
+            <key type="filename">16x16/png/dirt_spike_west.png</key>
+            <key type="filename">16x16/png/door_closed.png</key>
+            <key type="filename">16x16/png/door_open.png</key>
+            <key type="filename">16x16/png/gem.png</key>
+            <key type="filename">16x16/png/key.png</key>
+            <key type="filename">16x16/png/ladder.png</key>
+            <key type="filename">16x16/png/player.png</key>
+            <key type="filename">16x16/png/wall.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>
@@ -214,7 +214,8 @@
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
-            <key type="filename">png/menu_background.png</key>
+            <key type="filename">16x16/png/the_end.png</key>
+            <key type="filename">16x16/png/zigdug_logo.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>
@@ -223,14 +224,13 @@
                 <key>scale9Enabled</key>
                 <false/>
                 <key>scale9Borders</key>
-                <rect>64,64,128,128</rect>
+                <rect>56,28,112,56</rect>
                 <key>scale9Paddings</key>
-                <rect>64,64,128,128</rect>
+                <rect>56,28,112,56</rect>
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
-            <key type="filename">png/the_end.png</key>
-            <key type="filename">png/zigdug.png</key>
+            <key type="filename">16x16/png/ui_background.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>
                 <point_f>0.5,0.5</point_f>
@@ -239,16 +239,16 @@
                 <key>scale9Enabled</key>
                 <false/>
                 <key>scale9Borders</key>
-                <rect>56,28,112,56</rect>
+                <rect>64,64,128,128</rect>
                 <key>scale9Paddings</key>
-                <rect>56,28,112,56</rect>
+                <rect>64,64,128,128</rect>
                 <key>scale9FromFile</key>
                 <false/>
             </struct>
         </map>
         <key>fileList</key>
         <array>
-            <filename>png</filename>
+            <filename>16x16/png</filename>
         </array>
         <key>ignoreFileList</key>
         <array/>
