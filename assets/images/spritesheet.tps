@@ -195,10 +195,19 @@
             <key type="filename">16x16/png/dirt_spike_west.png</key>
             <key type="filename">16x16/png/door_closed.png</key>
             <key type="filename">16x16/png/door_open.png</key>
+            <key type="filename">16x16/png/door_open_01.png</key>
+            <key type="filename">16x16/png/door_open_02.png</key>
+            <key type="filename">16x16/png/door_open_03.png</key>
+            <key type="filename">16x16/png/door_open_04.png</key>
             <key type="filename">16x16/png/gem.png</key>
             <key type="filename">16x16/png/key.png</key>
             <key type="filename">16x16/png/ladder.png</key>
             <key type="filename">16x16/png/player.png</key>
+            <key type="filename">16x16/png/player_digging_right_01.png</key>
+            <key type="filename">16x16/png/player_digging_right_02.png</key>
+            <key type="filename">16x16/png/player_idle_right.png</key>
+            <key type="filename">16x16/png/player_running_right_01.png</key>
+            <key type="filename">16x16/png/player_running_right_02.png</key>
             <key type="filename">16x16/png/wall.png</key>
             <struct type="IndividualSpriteSettings">
                 <key>pivotPoint</key>

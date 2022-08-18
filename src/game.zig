@@ -1,6 +1,7 @@
 const std = @import("std");
 const mem = std.mem;
 const Allocator = mem.Allocator;
+const ArrayList = std.ArrayList;
 
 const ray = @import("raylib.zig");
 const log = std.log;
@@ -58,7 +59,30 @@ pub const Sound = enum(u8) {
     move,
 };
 
+var player_idle_right_animation: Animation = undefined;
+var player_running_right_animation: Animation = undefined;
+var player_digging_right_animation: Animation = undefined;
+var open_door_animation: Animation = undefined;
+
 pub fn init(allocator: Allocator) !GameData {
+    player_idle_right_animation = Animation.init(allocator);
+    try player_idle_right_animation.addFrame(.player_idle_right_01, 1.0 / 2.0);
+    try player_idle_right_animation.addFrame(.player_idle_right_02, 1.0 / 2.0);
+
+    player_running_right_animation = Animation.init(allocator);
+    try player_running_right_animation.addFrame(.player_running_right_01, 1.0 / 6.0);
+    try player_running_right_animation.addFrame(.player_running_right_02, 1.0 / 6.0);
+
+    player_digging_right_animation = Animation.init(allocator);
+    try player_digging_right_animation.addFrame(.player_digging_right_01, 1.0 / 12.0);
+    try player_digging_right_animation.addFrame(.player_digging_right_02, 1.0 / 12.0);
+
+    open_door_animation = Animation.init(allocator);
+    try open_door_animation.addFrame(.door_open_01, 1.0 / 3.0);
+    try open_door_animation.addFrame(.door_open_02, 1.0 / 3.0);
+    try open_door_animation.addFrame(.door_open_03, 1.0 / 3.0);
+    try open_door_animation.addFrame(.door_open_04, 1.0 / 3.0);
+
     var gameplay_data = try GameplayData.init(allocator);
     return GameData{
         .state = .title,
@@ -66,7 +90,7 @@ pub fn init(allocator: Allocator) !GameData {
     };
 }
 
-pub fn update(data: *GameData, input: *GameInput, delta_s: f64) void {
+pub fn update(data: *GameData, input: *GameInput, delta_s: f32) void {
     mem.set(bool, data.active_sounds[0..n_sounds], false);
     switch (data.state) {
         .title => updateTitleState(data, input),
@@ -118,6 +142,47 @@ pub const Tile = enum(u8) {
     boulder,
     dirt,
     door_closed,
+    door_open_01,
+    door_open_02,
+    door_open_03,
+    door_open_04,
+    key,
+    ladder,
+    player_idle_right_01,
+    player_idle_right_02,
+    player_running_right_01,
+    player_running_right_02,
+    player_digging_right_01,
+    player_digging_right_02,
+    space,
+    wall,
+    debug,
+
+    pub fn getEntity(self: Tile) Entity {
+        const entity = switch (self) {
+            .none => Entity.none,
+            .back_wall => Entity.back_wall,
+            .boulder => Entity.boulder,
+            .dirt => Entity.dirt,
+            .door_closed => Entity.door_closed,
+            .door_open_01, .door_open_02, .door_open_03, .door_open_04 => Entity.door_open,
+            .key => Entity.key,
+            .ladder => Entity.ladder,
+            .player_idle_right_01, .player_idle_right_02, .player_running_right_01, .player_running_right_02, .player_digging_right_01, .player_digging_right_02 => Entity.player,
+            .space => Entity.space,
+            .wall => Entity.wall,
+            .debug => Entity.debug,
+        };
+        return entity;
+    }
+};
+
+pub const Entity = enum(u8) {
+    none,
+    back_wall,
+    boulder,
+    dirt,
+    door_closed,
     door_open,
     key,
     ladder,
@@ -125,6 +190,45 @@ pub const Tile = enum(u8) {
     space,
     wall,
     debug,
+};
+
+pub const PlayerState = enum(u8) {
+    climbing,
+    digging,
+    falling,
+    pushing,
+    running,
+    standing,
+};
+
+const AnimationFrame = struct {
+    duration: f32,
+    tile: Tile,
+};
+
+const AnimationCounter = struct {
+    frame_left_s: f32,
+    frame_counter: u32 = 0,
+    frame_index: u8,
+};
+
+pub const Animation = struct {
+    frames: ArrayList(AnimationFrame),
+
+    pub fn init(allocator: Allocator) Animation {
+        var frames = ArrayList(AnimationFrame).init(allocator);
+        return Animation{
+            .frames = frames,
+        };
+    }
+
+    pub fn addFrame(self: *Animation, tile: Tile, duration: f32) !void {
+        var frame = AnimationFrame{
+            .duration = duration,
+            .tile = tile,
+        };
+        try self.frames.append(frame);
+    }
 };
 
 pub const GameplayData = struct {
@@ -138,8 +242,14 @@ pub const GameplayData = struct {
     round_objects: Tilemap(bool),
     climbable_components: Tilemap(bool),
     climber_components: Tilemap(bool),
+    animation_components: Tilemap(?Animation),
+    animation_counter_components: Tilemap(?AnimationCounter),
     is_player_alive: bool = true,
     player_energy: f64 = 1.0 / 6.0,
+    player_old_facing_direction: Direction = Direction.right,
+    player_old_state: PlayerState = PlayerState.standing,
+    player_new_facing_direction: Direction = Direction.right,
+    player_new_state: PlayerState = PlayerState.standing,
     map_energy: f64 = 0,
     skip_next_tile: bool = false,
     keys: i32 = 0,
@@ -195,6 +305,20 @@ pub const GameplayData = struct {
             1,
             false,
         );
+        const animation_components = try Tilemap(?Animation).init(
+            allocator,
+            tilemap_width,
+            tilemap_height,
+            1,
+            null,
+        );
+        const animation_counter_components = try Tilemap(?AnimationCounter).init(
+            allocator,
+            tilemap_width,
+            tilemap_height,
+            1,
+            null,
+        );
         return GameplayData{
             .maps = config.maps[0..],
             .background_map = background_map,
@@ -204,6 +328,8 @@ pub const GameplayData = struct {
             .round_objects = round_objects,
             .climbable_components = climbable_components,
             .climber_components = climber_components,
+            .animation_components = animation_components,
+            .animation_counter_components = animation_counter_components,
         };
     }
 };
@@ -211,7 +337,7 @@ pub const GameplayData = struct {
 const player_energy_full: f64 = 1.0 / 6.0;
 const map_energy_full: f64 = 1.0 / 6.0;
 
-fn updateGameplayState(data: *GameData, input: *GameInput, delta_s: f64) void {
+fn updateGameplayState(data: *GameData, input: *GameInput, delta_s: f32) void {
     switch (data.game.state) {
         .load_map => updateLoadMapState(data),
         .play_map => updatePlayMapState(data, input, delta_s),
@@ -242,9 +368,15 @@ fn updateLoadMapState(data: *GameData) void {
     data.game.falling_objects.setTiles(false);
     data.game.climbable_components.setTiles(false);
     data.game.climber_components.setTiles(false);
+    data.game.animation_components.setTiles(null);
+    data.game.animation_counter_components.setTiles(null);
     data.game.is_player_alive = true;
     data.game.player_energy = 1.0 / 6.0;
     data.game.map_energy = 0;
+    data.game.player_old_facing_direction = Direction.right;
+    data.game.player_old_state = PlayerState.standing;
+    data.game.player_new_facing_direction = Direction.right;
+    data.game.player_new_state = PlayerState.standing;
     data.game.skip_next_tile = false;
     data.game.is_level_beaten = false;
     data.game.state = .play_map;
@@ -316,7 +448,7 @@ fn loadMap(filename: []const u8, data: *GameData) void {
 // Play map sub state (this is where the beaf of the game is)
 //------------------------------------------------------------------------------------
 
-fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
+fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f32) void {
     if (data.game.is_level_beaten) {
         data.game.map_index += 1;
         if (data.game.map_index >= data.game.maps.len) {
@@ -338,13 +470,17 @@ fn updatePlayMapState(data: *GameData, input: *GameInput, delta_s: f64) void {
     }
 
     updatePlayer(data, input, delta_s);
+    animatePlayer(data);
     updateMap(data, delta_s);
+    updateAnimations(data, delta_s);
 }
 
 fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
     data.game.player_energy += delta_s;
 
     if (data.game.player_energy >= player_energy_full) {
+        data.game.player_old_facing_direction = data.game.player_new_facing_direction;
+        data.game.player_old_state = data.game.player_new_state;
         if (input.player_up or input.player_right or input.player_down or input.player_left) {
             var direction: Direction = undefined;
             if (input.player_up) direction = .up;
@@ -354,6 +490,8 @@ fn updatePlayer(data: *GameData, input: *GameInput, delta_s: f64) void {
 
             tryPlayerMove(direction, data);
             data.game.player_energy = 0;
+        } else {
+            data.game.player_new_state = .standing;
         }
     }
 }
@@ -367,7 +505,9 @@ fn tryPlayerMove(direction: Direction, data: *GameData) void {
         if (falling_objects.getTile(start_pos)) {
             if (!(tilemap.getTile(southOf(start_pos)) == .space) or climbable_components.getTile(start_pos)) {
                 falling_objects.setTile(start_pos, false);
+                data.game.player_new_state = .standing;
             } else {
+                data.game.player_new_state = .falling;
                 return;
             }
         }
@@ -377,8 +517,7 @@ fn tryPlayerMove(direction: Direction, data: *GameData) void {
                 if (climbable_components.getTile(start_pos) and climbable_components.getTile(above)) {
                     moveEntity(start_pos, above, data);
                     createSpaceEntity(start_pos, data);
-                } else if (tilemap.getTile(above) == .dirt) {
-                    createSpaceEntity(above, data);
+                    data.game.player_new_state = .climbing;
                 }
             },
             else => {
@@ -389,39 +528,64 @@ fn tryPlayerMove(direction: Direction, data: *GameData) void {
                     .up => unreachable,
                 };
                 const target_tile = tilemap.getTile(new_pos);
-                switch (target_tile) {
-                    .space, .dirt, .key => {
+                switch (target_tile.getEntity()) {
+                    .space => {
                         moveEntity(start_pos, new_pos, data);
                         createSpaceEntity(start_pos, data);
-                        if (target_tile == .key) {
-                            data.game.keys -= 1;
-                            data.active_sounds[@enumToInt(Sound.gem)] = true;
-                        }
+                        data.game.player_new_state = .running;
+                    },
+                    .dirt => {
+                        moveEntity(start_pos, new_pos, data);
+                        createSpaceEntity(start_pos, data);
+                        data.game.player_new_state = .digging;
+                    },
+                    .key => {
+                        moveEntity(start_pos, new_pos, data);
+                        createSpaceEntity(start_pos, data);
+                        data.game.player_new_state = .running;
+                        data.game.keys -= 1;
+                        data.active_sounds[@enumToInt(Sound.gem)] = true;
                     },
                     .boulder => {
                         switch (direction) {
-                            .right => if (tilemap.getTile(eastOf(new_pos)) == .space) {
-                                pushBoulder(start_pos, new_pos, eastOf(new_pos), data);
+                            .right => {
+                                if (tilemap.getTile(eastOf(new_pos)) == .space) {
+                                    pushBoulder(start_pos, new_pos, eastOf(new_pos), data);
+                                    data.game.player_new_state = .pushing;
+                                } else {
+                                    data.game.player_new_state = .standing;
+                                }
                             },
-                            .left => if (tilemap.getTile(westOf(new_pos)) == .space) {
-                                pushBoulder(start_pos, new_pos, westOf(new_pos), data);
+                            .left => {
+                                if (tilemap.getTile(westOf(new_pos)) == .space) {
+                                    pushBoulder(start_pos, new_pos, westOf(new_pos), data);
+                                    data.game.player_new_state = .pushing;
+                                } else {
+                                    data.game.player_new_state = .standing;
+                                }
                             },
-                            else => {},
+                            else => {
+                                data.game.player_new_state = .standing;
+                            },
                         }
                     },
                     .door_open => {
                         createSpaceEntity(start_pos, data);
                         data.game.is_level_beaten = true;
+                        data.game.player_new_state = .running; // TODO: we can add a winning state here
                     },
-                    else => {},
+                    else => {
+                        data.game.player_new_state = .standing;
+                    },
                 }
             },
         }
+        data.game.player_new_facing_direction = direction;
     }
 }
 
 fn isPlayer(tile: Tile) bool {
-    return tile == .player;
+    return tile.getEntity() == .player;
 }
 
 fn pushBoulder(
@@ -433,6 +597,53 @@ fn pushBoulder(
     moveEntity(boulder_origin, boulder_target, data);
     moveEntity(player_origin, boulder_origin, data);
     createSpaceEntity(player_origin, data);
+}
+
+fn animatePlayer(data: *GameData) void {
+    const old_state = data.game.player_old_state;
+    const new_state = data.game.player_new_state;
+    const old_facing_direction = data.game.player_old_facing_direction;
+    const new_facing_direction = data.game.player_new_facing_direction;
+
+    if (old_state == new_state and old_facing_direction == new_facing_direction) {
+        return;
+    }
+
+    if (data.game.tilemap.findFirst(isPlayer)) |player_point| {
+        var animation: ?Animation = null;
+
+        if (new_state == .climbing and new_facing_direction == .left) {
+            animation = player_running_right_animation;
+        } else if (new_state == .climbing and new_facing_direction == .right) {
+            animation = player_running_right_animation;
+        } else if (new_state == .digging and new_facing_direction == .left) {
+            animation = player_digging_right_animation;
+        } else if (new_state == .digging and new_facing_direction == .right) {
+            animation = player_digging_right_animation;
+        } else if (new_state == .digging and new_facing_direction == .down) {
+            animation = player_digging_right_animation;
+        } else if (new_state == .falling and new_facing_direction == .left) {
+            animation = player_running_right_animation;
+        } else if (new_state == .falling and new_facing_direction == .right) {
+            animation = player_running_right_animation;
+        } else if (new_state == .pushing and new_facing_direction == .left) {
+            animation = player_running_right_animation;
+        } else if (new_state == .pushing and new_facing_direction == .right) {
+            animation = player_running_right_animation;
+        } else if (new_state == .running and new_facing_direction == .left) {
+            animation = player_running_right_animation;
+        } else if (new_state == .running and new_facing_direction == .right) {
+            animation = player_running_right_animation;
+        } else if (new_state == .standing and new_facing_direction == .left) {
+            animation = player_idle_right_animation;
+        } else if (new_state == .standing and new_facing_direction == .right) {
+            animation = player_idle_right_animation;
+        }
+
+        if (animation != null) {
+            setAnimation(player_point, animation.?, data);
+        }
+    }
 }
 
 fn updateMap(data: *GameData, delta_s: f64) void {
@@ -490,7 +701,7 @@ fn updatePhysics(start_point: Point(i32), data: *GameData) void {
     }
 
     // Case: entity falls on player
-    if (tile_below == .player) {
+    if (tile_below.getEntity() == .player) {
         if (falling_objects.getTile(start_point)) {
             data.game.is_player_alive = false;
         }
@@ -528,6 +739,55 @@ fn updatePhysics(start_point: Point(i32), data: *GameData) void {
     // Case: none of the above, let's stop it if it's falling
     if (data.game.falling_objects.getTile(start_point)) {
         data.game.falling_objects.setTile(start_point, false);
+    }
+}
+
+fn setAnimation(point: Point(i32), animation: Animation, data: *GameData) void {
+    var animation_components = data.game.animation_components;
+    var animation_counter_components = data.game.animation_counter_components;
+
+    animation_components.setTile(point, animation);
+    animation_counter_components.setTile(point, AnimationCounter{
+        .frame_left_s = animation.frames.items[0].duration,
+        .frame_index = 0,
+    });
+}
+
+fn updateAnimations(data: *GameData, delta_s: f32) void {
+    var tilemap = data.game.tilemap;
+    var animations = data.game.animation_components;
+    var animation_counters = data.game.animation_counter_components;
+    var animation_counters_it = animation_counters.iteratorForward();
+
+    while (animation_counters_it.next()) |item| {
+        if (item.value) |animation_counter| {
+            const left_s = animation_counter.frame_left_s - delta_s;
+            if (left_s <= 0.0) {
+                if (animations.getTile(item.point)) |animation| {
+                    var next_frame_idx = animation_counter.frame_index + 1;
+                    if (next_frame_idx == animation.frames.items.len) next_frame_idx = 0;
+                    const next_frame = animation.frames.items[@intCast(usize, next_frame_idx)];
+                    animation_counters.setTile(item.point, AnimationCounter{
+                        .frame_left_s = next_frame.duration,
+                        .frame_counter = animation_counter.frame_counter + 1,
+                        .frame_index = next_frame_idx,
+                    });
+                    tilemap.setTile(item.point, next_frame.tile);
+                }
+            } else {
+                if (animation_counter.frame_counter == 0) {
+                    if (animations.getTile(item.point)) |animation| {
+                        const frame = animation.frames.items[0];
+                        tilemap.setTile(item.point, frame.tile);
+                    }
+                }
+                animation_counters.setTile(item.point, AnimationCounter{
+                    .frame_left_s = left_s,
+                    .frame_counter = animation_counter.frame_counter + 1,
+                    .frame_index = animation_counter.frame_index,
+                });
+            }
+        }
     }
 }
 
@@ -686,7 +946,7 @@ fn createOpenDoorEntity(point: Point(i32), data: *GameData) void {
     var falling_objects = data.game.falling_objects;
     var climber_components = data.game.climber_components;
 
-    tilemap.setTile(point, .door_open);
+    tilemap.setTile(point, .door_open_01);
     physics_objects.setTile(point, false);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
@@ -732,11 +992,12 @@ fn createPlayerEntity(point: Point(i32), data: *GameData) void {
     var falling_objects = data.game.falling_objects;
     var climber_components = data.game.climber_components;
 
-    tilemap.setTile(point, .player);
+    tilemap.setTile(point, .player_idle_right_01);
     physics_objects.setTile(point, true);
     round_objects.setTile(point, false);
     falling_objects.setTile(point, false);
     climber_components.setTile(point, true);
+    setAnimation(point, player_idle_right_animation, data);
 }
 
 fn createDebugEntity(point: Point(i32), data: *GameData) void {
@@ -763,18 +1024,24 @@ fn moveEntity(start: Point(i32), destination: Point(i32), data: *GameData) void 
     var round_objects = data.game.round_objects;
     var falling_objects = data.game.falling_objects;
     var climber_components = data.game.climber_components;
+    var animation_components = data.game.animation_components;
+    var animation_counter_components = data.game.animation_counter_components;
 
     tilemap.setTile(destination, tilemap.getTile(start));
     physics_objects.setTile(destination, physics_objects.getTile(start));
     round_objects.setTile(destination, round_objects.getTile(start));
     falling_objects.setTile(destination, falling_objects.getTile(start));
     climber_components.setTile(destination, climber_components.getTile(start));
+    animation_components.setTile(destination, animation_components.getTile(start));
+    animation_counter_components.setTile(destination, animation_counter_components.getTile(start));
 
     tilemap.setTile(start, tilemap.null_value);
     physics_objects.setTile(start, false);
     round_objects.setTile(start, false);
     falling_objects.setTile(start, false);
     climber_components.setTile(start, false);
+    animation_components.setTile(start, null);
+    animation_counter_components.setTile(start, null);
 }
 
 //------------------------------------------------------------------------------------
