@@ -1,8 +1,10 @@
 const Allocator = @import("std").mem.Allocator;
 
-const game = @import("game.zig");
-const GameData = game.GameData;
 const ray = @import("raylib.zig");
+const zigdug = @import("zigdug.zig");
+
+const Sound = zigdug.Sound;
+const ZigDug = zigdug.ZigDug;
 
 pub const Audio = struct {
     sounds: []ray.Sound,
@@ -10,9 +12,9 @@ pub const Audio = struct {
     pub fn init(allocator: Allocator) !Audio {
         ray.InitAudioDevice();
         var sounds = try allocator.alloc(ray.Sound, 3);
-        sounds[@enumToInt(game.Sound.move)] = ray.LoadSound("data/sounds/move.wav");
-        sounds[@enumToInt(game.Sound.boulder)] = ray.LoadSound("data/sounds/boulder.wav");
-        sounds[@enumToInt(game.Sound.gem)] = ray.LoadSound("data/sounds/gem.wav");
+        sounds[@enumToInt(Sound.move)] = ray.LoadSound("data/sounds/move.wav");
+        sounds[@enumToInt(Sound.boulder)] = ray.LoadSound("data/sounds/boulder.wav");
+        sounds[@enumToInt(Sound.gem)] = ray.LoadSound("data/sounds/gem.wav");
         return Audio{ .sounds = sounds };
     }
 
@@ -24,8 +26,8 @@ pub const Audio = struct {
         ray.CloseAudioDevice();
     }
 
-    pub fn play(self: *Audio, data: *GameData) void {
-        for (data.active_sounds[0..3]) |is_active, i| {
+    pub fn play(self: *Audio, global: *ZigDug) void {
+        for (global.active_sounds[0..3]) |is_active, i| {
             if (is_active) ray.PlaySound(self.sounds[i]);
         }
     }

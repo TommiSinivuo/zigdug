@@ -1,10 +1,14 @@
 const ray = @import("raylib.zig");
 const spritesheet = @import("spritesheet.zig");
-const game = @import("game.zig");
-const GameData = game.GameData;
-const Tile = game.Tile;
-const Tilemap = @import("tilemap.zig").Tilemap;
-const Point = @import("common.zig").Point;
+const zigdug = @import("zigdug.zig");
+
+const PauseState = zigdug.PauseState;
+const PlayState = zigdug.PlayState;
+const Point = zigdug.Point;
+const Tile = zigdug.Tile;
+const Tilemap = zigdug.Tilemap;
+const TitleState = zigdug.TitleState;
+const ZigDug = zigdug.ZigDug;
 
 const p_tile_size = 16;
 
@@ -32,16 +36,16 @@ pub const Renderer = struct {
         ray.UnloadViewport(&self.viewport);
     }
 
-    pub fn draw(self: *Renderer, data: *GameData) void {
+    pub fn draw(self: *Renderer, global: *ZigDug) void {
         ray.BeginDrawing();
         ray.ClearBackground(ray.BLACK);
         ray.BeginViewportMode(&self.viewport);
 
-        switch (data.state) {
-            .title => self.drawTitle(data),
-            .play => self.drawGameplay(data),
-            .pause => self.drawPauseMenu(data),
-            .credits => self.drawCredits(),
+        switch (global.state) {
+            .title => self.drawTitleState(&global.title_state),
+            .play => self.drawPlayState(&global.play_state),
+            .pause => self.drawPauseState(&global.pause_state),
+            .credits => self.drawCreditsState(),
         }
 
         ray.EndViewportMode();
@@ -53,7 +57,7 @@ pub const Renderer = struct {
     // Title screen
     //------------------------------------------------------------------------------------
 
-    fn drawTitle(self: *Renderer, data: *GameData) void {
+    fn drawTitleState(self: *Renderer, title_state: *TitleState) void {
 
         // background
         ray.WDrawTextureRec(
@@ -76,7 +80,7 @@ pub const Renderer = struct {
         ray.DrawText("QUIT", 120, 192, 16, ray.RAYWHITE);
 
         // menu selection
-        const gem_y: f32 = if (data.title.selection == .quit) 192 else 160;
+        const gem_y: f32 = if (title_state.selection == .quit) 192 else 160;
         ray.WDrawTextureRec(
             self.spritesheet_texture,
             &spriteRectToRectangle(spritesheet.gem),
@@ -89,11 +93,11 @@ pub const Renderer = struct {
     // Gameplay
     //------------------------------------------------------------------------------------
 
-    fn drawGameplay(self: *Renderer, data: *GameData) void {
+    fn drawPlayState(self: *Renderer, play_state: *PlayState) void {
         ray.ClearBackground(ray.BLACK);
 
-        self.drawTilemap(&data.game.background_map);
-        self.drawTilemap(&data.game.tilemap);
+        self.drawTilemap(&play_state.background_map);
+        self.drawTilemap(&play_state.tilemap);
     }
 
     fn drawTilemap(self: *Renderer, tilemap: *Tilemap(Tile)) void {
@@ -104,7 +108,7 @@ pub const Renderer = struct {
         }
     }
 
-    fn drawTile(self: *Renderer, tile: game.Tile, tile_point: Point(i32)) void {
+    fn drawTile(self: *Renderer, tile: Tile, tile_point: Point(i32)) void {
         const optional_sprite_rect: ?spritesheet.SpriteRect = switch (tile) {
             .none => spritesheet.black,
             .back_wall => spritesheet.back_wall,
@@ -144,7 +148,7 @@ pub const Renderer = struct {
     // Pause menu
     //------------------------------------------------------------------------------------
 
-    fn drawPauseMenu(self: *Renderer, data: *GameData) void {
+    fn drawPauseState(self: *Renderer, pause_state: *PauseState) void {
 
         // background
         ray.WDrawTextureRec(
@@ -161,7 +165,7 @@ pub const Renderer = struct {
         ray.DrawText("QUIT GAME", 72, 168, 16, ray.RAYWHITE);
 
         // menu selection
-        const gem_y: f32 = switch (data.pause_menu.selection) {
+        const gem_y: f32 = switch (pause_state.selection) {
             .resume_level => 72,
             .restart_level => 104,
             .return_to_title => 136,
@@ -179,7 +183,7 @@ pub const Renderer = struct {
     // Credits
     //------------------------------------------------------------------------------------
 
-    fn drawCredits(self: *Renderer) void {
+    fn drawCreditsState(self: *Renderer) void {
 
         // background
         ray.WDrawTextureRec(

@@ -1,12 +1,12 @@
-const std = @import("std");
-const Allocator = std.mem.Allocator;
-
 const ray = @import("raylib.zig");
-const game = @import("game.zig");
+const std = @import("std");
+const zigdug = @import("zigdug.zig");
+
+const Allocator = std.mem.Allocator;
 const Audio = @import("audio.zig").Audio;
 const Renderer = @import("render.zig").Renderer;
-const GameData = game.GameData;
-const GameInput = game.GameInput;
+const Input = zigdug.Input;
+const ZigDug = zigdug.ZigDug;
 
 const p_window_width = 1920;
 const p_window_height = 1920;
@@ -26,18 +26,18 @@ pub fn main() !void {
     var renderer = Renderer.init(p_screen_width, p_screen_height);
     var audio = try Audio.init(allocator);
 
-    var game_data = try game.init(allocator);
-    var game_input = game.GameInput{};
+    var game = try ZigDug.init(allocator);
+    var game_input = Input{};
 
     ray.SetExitKey(ray.KeyboardKey.KEY_NULL);
     ray.SetTargetFPS(30);
 
-    while (!ray.WindowShouldClose() and game_data.is_running) {
+    while (!ray.WindowShouldClose() and game.is_running) {
         const delta_s = ray.GetFrameTime();
         processInput(&game_input);
-        game.update(&game_data, &game_input, delta_s);
-        renderer.draw(&game_data);
-        audio.play(&game_data);
+        game.update(&game_input, delta_s);
+        renderer.draw(&game);
+        audio.play(&game);
     }
 
     renderer.destroy();
@@ -45,7 +45,7 @@ pub fn main() !void {
     ray.CloseWindow();
 }
 
-fn processInput(game_input: *GameInput) void {
+fn processInput(game_input: *Input) void {
     // Keyboard
     const kb_game_pause = ray.IsKeyPressed(ray.KeyboardKey.KEY_ESCAPE);
     const kb_player_up = ray.IsKeyDown(ray.KeyboardKey.KEY_UP);
