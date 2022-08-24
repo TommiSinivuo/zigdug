@@ -62,6 +62,15 @@ pub const Entity = enum(u8) {
     debug,
 };
 
+pub const PlayerData = struct {
+    is_alive: bool = true,
+    energy: f64 = 1.0 / 6.0,
+    old_facing_direction: Direction = Direction.right,
+    old_state: PlayerState = PlayerState.standing,
+    new_facing_direction: Direction = Direction.right,
+    new_state: PlayerState = PlayerState.standing,
+};
+
 pub const PlayerState = enum(u8) {
     climbing,
     digging,
@@ -76,6 +85,13 @@ pub const PlayState = struct {
     maps: [][]const u8,
     map_index: usize = 0,
 
+    map_energy: f64 = 0,
+    skip_next_tile: bool = false,
+    keys: i32 = 0,
+    is_level_beaten: bool = false,
+
+    player: PlayerData = PlayerData{},
+
     // Components
     animation_components: Tilemap(?Animation(Tile)),
     animation_counter_components: Tilemap(?AnimationCounter),
@@ -87,17 +103,6 @@ pub const PlayState = struct {
     foreground_tile_components: Tilemap(Tile),
     physics_components: Tilemap(bool),
     round_components: Tilemap(bool),
-
-    is_player_alive: bool = true,
-    player_energy: f64 = 1.0 / 6.0,
-    player_old_facing_direction: Direction = Direction.right,
-    player_old_state: PlayerState = PlayerState.standing,
-    player_new_facing_direction: Direction = Direction.right,
-    player_new_state: PlayerState = PlayerState.standing,
-    map_energy: f64 = 0,
-    skip_next_tile: bool = false,
-    keys: i32 = 0,
-    is_level_beaten: bool = false,
 
     pub fn init(allocator: Allocator) !PlayState {
         const entity_type_components = try Tilemap(Entity).init(
@@ -194,6 +199,10 @@ pub const PlayState = struct {
     }
 
     fn updateLoadMapState(self: *PlayState, global: *ZigDug) void {
+        self.substate = .play_map;
+        self.skip_next_tile = false;
+        self.is_level_beaten = false;
+        self.map_energy = 0;
         self.keys = 0;
         self.entity_type_components.setAll(.none);
         self.background_tile_components.setAll(.none);
@@ -205,16 +214,12 @@ pub const PlayState = struct {
         self.climber_components.setAll(false);
         self.animation_components.setAll(null);
         self.animation_counter_components.setAll(null);
-        self.is_player_alive = true;
-        self.player_energy = 1.0 / 6.0;
-        self.map_energy = 0;
-        self.player_old_facing_direction = Direction.right;
-        self.player_old_state = PlayerState.standing;
-        self.player_new_facing_direction = Direction.right;
-        self.player_new_state = PlayerState.standing;
-        self.skip_next_tile = false;
-        self.is_level_beaten = false;
-        self.substate = .play_map;
+        self.player.is_alive = true;
+        self.player.energy = 1.0 / 6.0;
+        self.player.old_facing_direction = Direction.right;
+        self.player.old_state = PlayerState.standing;
+        self.player.new_facing_direction = Direction.right;
+        self.player.new_state = PlayerState.standing;
         self.loadMap(global, self.maps[self.map_index]);
     }
 
@@ -290,7 +295,7 @@ pub const PlayState = struct {
             return;
         }
 
-        if (!self.is_player_alive) {
+        if (!self.player.is_alive) {
             self.substate = .load_map;
             return;
         }
@@ -307,11 +312,11 @@ pub const PlayState = struct {
     }
 
     fn updatePlayer(self: *PlayState, global: *ZigDug, input: *Input, delta_s: f32) void {
-        self.player_energy += delta_s;
+        self.player.energy += delta_s;
 
-        if (self.player_energy >= config.player_energy_max) {
-            self.player_old_facing_direction = self.player_new_facing_direction;
-            self.player_old_state = self.player_new_state;
+        if (self.player.energy >= config.player_energy_max) {
+            self.player.old_facing_direction = self.player.new_facing_direction;
+            self.player.old_state = self.player.new_state;
             if (input.player_up or input.player_right or input.player_down or input.player_left) {
                 var direction: Direction = undefined;
                 if (input.player_up) direction = .up;
@@ -320,9 +325,9 @@ pub const PlayState = struct {
                 if (input.player_left) direction = .left;
 
                 self.tryPlayerMove(global, direction);
-                self.player_energy = 0;
+                self.player.energy = 0;
             } else {
-                self.player_new_state = .standing;
+                self.player.new_state = .standing;
             }
         }
     }
@@ -332,9 +337,9 @@ pub const PlayState = struct {
             if (self.falling_components.get(start_pos)) {
                 if (!(self.entity_type_components.get(southOf(start_pos)) == .space) or self.climbable_components.get(start_pos)) {
                     self.falling_components.set(start_pos, false);
-                    self.player_new_state = .standing;
+                    self.player.new_state = .standing;
                 } else {
-                    self.player_new_state = .falling;
+                    self.player.new_state = .falling;
                     return;
                 }
             }
@@ -344,7 +349,7 @@ pub const PlayState = struct {
                     if (self.climbable_components.get(start_pos) and self.climbable_components.get(above)) {
                         self.moveEntity(start_pos, above);
                         self.createEntity(global, .space, start_pos);
-                        self.player_new_state = .climbing;
+                        self.player.new_state = .climbing;
                     }
                 },
                 else => {
@@ -359,17 +364,17 @@ pub const PlayState = struct {
                         .space => {
                             self.moveEntity(start_pos, new_pos);
                             self.createEntity(global, .space, start_pos);
-                            self.player_new_state = .running;
+                            self.player.new_state = .running;
                         },
                         .dirt => {
                             self.moveEntity(start_pos, new_pos);
                             self.createEntity(global, .space, start_pos);
-                            self.player_new_state = .digging;
+                            self.player.new_state = .digging;
                         },
                         .key => {
                             self.moveEntity(start_pos, new_pos);
                             self.createEntity(global, .space, start_pos);
-                            self.player_new_state = .running;
+                            self.player.new_state = .running;
                             self.keys -= 1;
                             global.active_sounds[@enumToInt(Sound.gem)] = true;
                         },
@@ -378,36 +383,36 @@ pub const PlayState = struct {
                                 .right => {
                                     if (self.entity_type_components.get(eastOf(new_pos)) == .space) {
                                         self.pushBoulder(global, start_pos, new_pos, eastOf(new_pos));
-                                        self.player_new_state = .pushing;
+                                        self.player.new_state = .pushing;
                                     } else {
-                                        self.player_new_state = .standing;
+                                        self.player.new_state = .standing;
                                     }
                                 },
                                 .left => {
                                     if (self.entity_type_components.get(westOf(new_pos)) == .space) {
                                         self.pushBoulder(global, start_pos, new_pos, westOf(new_pos));
-                                        self.player_new_state = .pushing;
+                                        self.player.new_state = .pushing;
                                     } else {
-                                        self.player_new_state = .standing;
+                                        self.player.new_state = .standing;
                                     }
                                 },
                                 else => {
-                                    self.player_new_state = .standing;
+                                    self.player.new_state = .standing;
                                 },
                             }
                         },
                         .door_open => {
                             self.createEntity(global, .space, start_pos);
                             self.is_level_beaten = true;
-                            self.player_new_state = .running; // TODO: we can add a winning state here
+                            self.player.new_state = .running; // TODO: we can add a winning state here
                         },
                         else => {
-                            self.player_new_state = .standing;
+                            self.player.new_state = .standing;
                         },
                     }
                 },
             }
-            self.player_new_facing_direction = direction;
+            self.player.new_facing_direction = direction;
         }
     }
 
@@ -428,10 +433,10 @@ pub const PlayState = struct {
     }
 
     fn animatePlayer(self: *PlayState, global: *ZigDug) void {
-        const old_state = self.player_old_state;
-        const new_state = self.player_new_state;
-        const old_facing_direction = self.player_old_facing_direction;
-        const new_facing_direction = self.player_new_facing_direction;
+        const old_state = self.player.old_state;
+        const new_state = self.player.new_state;
+        const old_facing_direction = self.player.old_facing_direction;
+        const new_facing_direction = self.player.new_facing_direction;
 
         if (old_state == new_state and old_facing_direction == new_facing_direction) {
             return;
@@ -530,7 +535,7 @@ pub const PlayState = struct {
         // Case: entity falls on player
         if (entity_below == .player) {
             if (falling_components.get(start_point)) {
-                self.is_player_alive = false;
+                self.player.is_alive = false;
             }
             return;
         }
