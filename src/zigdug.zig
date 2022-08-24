@@ -5,9 +5,10 @@ const mem = std.mem;
 
 const Allocator = mem.Allocator;
 
+pub const config = @import("zigdug/config.zig");
+
 const animation = @import("zigdug/animation.zig");
 const common = @import("zigdug/common.zig");
-const config = @import("zigdug/config.zig");
 const play_state = @import("zigdug/play_state.zig");
 const ray = @import("raylib.zig");
 

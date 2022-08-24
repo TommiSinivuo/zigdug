@@ -1,3 +1,4 @@
+const config = @import("config.zig");
 const ray = @import("raylib.zig");
 const spritesheet = @import("spritesheet.zig");
 const zigdug = @import("zigdug.zig");
@@ -9,8 +10,6 @@ const Tile = zigdug.Tile;
 const Tilemap = zigdug.Tilemap;
 const TitleState = zigdug.TitleState;
 const ZigDug = zigdug.ZigDug;
-
-const p_tile_size = 16;
 
 pub const Renderer = struct {
     viewport: ray.Viewport,
@@ -96,8 +95,8 @@ pub const Renderer = struct {
     fn drawPlayState(self: *Renderer, play_state: *PlayState) void {
         ray.ClearBackground(ray.BLACK);
 
-        self.drawTilemap(&play_state.background_map);
-        self.drawTilemap(&play_state.tilemap);
+        self.drawTilemap(&play_state.background_tile_components);
+        self.drawTilemap(&play_state.foreground_tile_components);
     }
 
     fn drawTilemap(self: *Renderer, tilemap: *Tilemap(Tile)) void {
@@ -212,8 +211,8 @@ pub const Renderer = struct {
 
 fn tileToScreenCoordinates(tile_point: Point(i32)) ray.Vector2 {
     return ray.Vector2{
-        .x = @intToFloat(f32, tile_point.x) * p_tile_size,
-        .y = @intToFloat(f32, tile_point.y) * p_tile_size,
+        .x = @intToFloat(f32, tile_point.x) * config.render_tile_size,
+        .y = @intToFloat(f32, tile_point.y) * config.render_tile_size,
     };
 }
 

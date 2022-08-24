@@ -1,3 +1,4 @@
+const config = @import("config.zig");
 const ray = @import("raylib.zig");
 const std = @import("std");
 const zigdug = @import("zigdug.zig");
@@ -10,8 +11,6 @@ const ZigDug = zigdug.ZigDug;
 
 const p_window_width = 1920;
 const p_window_height = 1920;
-const p_screen_width = 256;
-const p_screen_height = 256;
 
 pub fn main() !void {
     var arena_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -23,7 +22,9 @@ pub fn main() !void {
     ray.InitWindow(p_window_width, p_window_height, "Zig Dug");
     ray.HideCursor();
 
-    var renderer = Renderer.init(p_screen_width, p_screen_height);
+    const screen_width = config.render_tile_size * zigdug.config.map_width;
+    const screen_height = config.render_tile_size * zigdug.config.map_height;
+    var renderer = Renderer.init(screen_width, screen_height);
     var audio = try Audio.init(allocator);
 
     var game = try ZigDug.init(allocator);

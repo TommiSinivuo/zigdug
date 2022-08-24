@@ -66,7 +66,7 @@ pub fn Tilemap(comptime T: type) type {
             return null;
         }
 
-        pub fn getTile(self: *const Tilemap(T), point: Point(i32)) T {
+        pub fn get(self: *const Tilemap(T), point: Point(i32)) T {
             if (self.containsPoint(point)) {
                 const index = self.memoryIndexOf(point);
                 return self.memory.tiles[index];
@@ -129,18 +129,18 @@ pub fn Tilemap(comptime T: type) type {
                     .x = self.box.x + src_item.point.x,
                     .y = self.box.y + src_item.point.y,
                 };
-                self.setTile(point, transform(src_item.value));
+                self.set(point, transform(src_item.value));
             }
         }
 
-        pub fn setTile(self: *const Tilemap(T), point: Point(i32), value: T) void {
+        pub fn set(self: *const Tilemap(T), point: Point(i32), value: T) void {
             if (self.containsPoint(point)) {
                 const index = self.memoryIndexOf(point);
                 self.memory.tiles[index] = value;
             }
         }
 
-        pub fn setTiles(self: *const Tilemap(T), value: T) void {
+        pub fn setAll(self: *const Tilemap(T), value: T) void {
             const bottom_right_x = self.box.x + (self.box.w - 1);
             const bottom_right_y = self.box.y + (self.box.h - 1);
 
@@ -310,53 +310,53 @@ test "Tilemap - init and destroy" {
     }
 }
 
-test "Tilemap - getTile and setTile basic usage" {
+test "Tilemap - get and set basic usage" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 16, 16, 16, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
     const position = Point(i32){ .x = 8, .y = 8 };
-    var res = tilemap.getTile(position);
+    var res = tilemap.get(position);
     try expectEqual(@intCast(u8, 0), res);
-    tilemap.setTile(position, 1);
-    res = tilemap.getTile(position);
+    tilemap.set(position, 1);
+    res = tilemap.get(position);
     try expectEqual(@intCast(u8, 1), res);
 }
 
-test "Tilemap - getTile with position out of bounds returns tilemap null value" {
+test "Tilemap - get with position out of bounds returns tilemap null value" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 16, 16, 16, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
-    tilemap.setTiles(1);
+    tilemap.setAll(1);
 
     const outside_1 = Point(i32){ .x = -1, .y = -1 };
     const outside_2 = Point(i32){ .x = 16, .y = 16 };
     const outside_3 = Point(i32){ .x = -1, .y = 0 };
     const outside_4 = Point(i32){ .x = 0, .y = -1 };
 
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(outside_1));
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(outside_2));
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(outside_3));
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(outside_4));
+    try expectEqual(@intCast(u8, 0), tilemap.get(outside_1));
+    try expectEqual(@intCast(u8, 0), tilemap.get(outside_2));
+    try expectEqual(@intCast(u8, 0), tilemap.get(outside_3));
+    try expectEqual(@intCast(u8, 0), tilemap.get(outside_4));
 }
 
-test "Tilemap - setTile on sub tilemap" {
+test "Tilemap - set on sub tilemap" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 8, 8, 1, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
     const submap_rect = Rect{ .x = 2, .y = 2, .w = 4, .h = 4 };
     var submap = tilemap.subTilemap(submap_rect).?;
-    submap.setTile(Point(i32){ .x = 2, .y = 2 }, 1);
+    submap.set(Point(i32){ .x = 2, .y = 2 }, 1);
 
     const expected_1: u8 = 1;
-    const result_1 = submap.getTile(Point(i32){ .x = 2, .y = 2 });
+    const result_1 = submap.get(Point(i32){ .x = 2, .y = 2 });
     try expectEqual(expected_1, result_1);
 
     const expected_2: u8 = 1;
-    const result_2 = tilemap.getTile(Point(i32){ .x = 2, .y = 2 });
+    const result_2 = tilemap.get(Point(i32){ .x = 2, .y = 2 });
     try expectEqual(expected_2, result_2);
 }
 
-test "Tilemap - setTile with position out of bounds should be no-op" {
+test "Tilemap - set with position out of bounds should be no-op" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 16, 16, 16, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
@@ -365,41 +365,41 @@ test "Tilemap - setTile with position out of bounds should be no-op" {
     const outside_3 = Point(i32){ .x = -1, .y = 0 };
     const outside_4 = Point(i32){ .x = 0, .y = -1 };
 
-    tilemap.setTile(outside_1, 1);
-    tilemap.setTile(outside_2, 1);
-    tilemap.setTile(outside_3, 1);
-    tilemap.setTile(outside_4, 1);
+    tilemap.set(outside_1, 1);
+    tilemap.set(outside_2, 1);
+    tilemap.set(outside_3, 1);
+    tilemap.set(outside_4, 1);
 
     for (tilemap.memory.tiles) |tile| {
         try expectEqual(@intCast(u8, 0), tile);
     }
 }
 
-test "Tilemap - setTiles basic usage" {
+test "Tilemap - setAll basic usage" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 16, 16, 16, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
-    tilemap.setTiles(1);
+    tilemap.setAll(1);
 
     for (tilemap.memory.tiles) |tile| {
         try expectEqual(@intCast(u8, 1), tile);
     }
 }
 
-test "Tilemap - setTiles on sub tilemap" {
+test "Tilemap - setAll on sub tilemap" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 8, 8, 1, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
     const submap_rect = Rect{ .x = 2, .y = 2, .w = 4, .h = 4 };
-    tilemap.subTilemap(submap_rect).?.setTiles(1);
+    tilemap.subTilemap(submap_rect).?.setAll(1);
 
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(Point(i32){ .x = 0, .y = 0 }));
-    try expectEqual(@intCast(u8, 1), tilemap.getTile(Point(i32){ .x = 2, .y = 2 }));
-    try expectEqual(@intCast(u8, 1), tilemap.getTile(Point(i32){ .x = 5, .y = 5 }));
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(Point(i32){ .x = 1, .y = 2 }));
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(Point(i32){ .x = 2, .y = 1 }));
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(Point(i32){ .x = 5, .y = 6 }));
-    try expectEqual(@intCast(u8, 0), tilemap.getTile(Point(i32){ .x = 6, .y = 5 }));
+    try expectEqual(@intCast(u8, 0), tilemap.get(Point(i32){ .x = 0, .y = 0 }));
+    try expectEqual(@intCast(u8, 1), tilemap.get(Point(i32){ .x = 2, .y = 2 }));
+    try expectEqual(@intCast(u8, 1), tilemap.get(Point(i32){ .x = 5, .y = 5 }));
+    try expectEqual(@intCast(u8, 0), tilemap.get(Point(i32){ .x = 1, .y = 2 }));
+    try expectEqual(@intCast(u8, 0), tilemap.get(Point(i32){ .x = 2, .y = 1 }));
+    try expectEqual(@intCast(u8, 0), tilemap.get(Point(i32){ .x = 5, .y = 6 }));
+    try expectEqual(@intCast(u8, 0), tilemap.get(Point(i32){ .x = 6, .y = 5 }));
 }
 
 test "Tilemap - containsPoint basic usage" {
@@ -440,8 +440,8 @@ test "Tilemap - count" {
     const submap_rect = Rect{ .x = 2, .y = 2, .w = 4, .h = 4 };
     var submap = tilemap.subTilemap(submap_rect).?;
 
-    tilemap.setTile(Point(i32){ .x = 0, .y = 0 }, 1);
-    submap.setTiles(1);
+    tilemap.set(Point(i32){ .x = 0, .y = 0 }, 1);
+    submap.setAll(1);
 
     try expectEqual(@intCast(i32, 17), tilemap.count(isOne));
     try expectEqual(@intCast(i32, 16), submap.count(isOne));
@@ -509,7 +509,7 @@ test "Tilemap - isEvery on sub tilemap" {
     const submap_rect = Rect{ .x = 2, .y = 2, .w = 4, .h = 4 };
     var submap = tilemap.subTilemap(submap_rect).?;
 
-    submap.setTiles(1);
+    submap.setAll(1);
 
     try expect(!tilemap.isEvery(isZero));
     try expect(!tilemap.isEvery(isOne));
@@ -585,7 +585,7 @@ test "TilemapIterator basic usage" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 2, 2, 1, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
-    tilemap.setTile(Point(i32){ .x = 0, .y = 0 }, 1);
+    tilemap.set(Point(i32){ .x = 0, .y = 0 }, 1);
 
     var iterator = tilemap.iterator(false);
 
@@ -616,7 +616,7 @@ test "TilemapIterator basic usage backwards" {
     var tilemap = try Tilemap(u8).init(testing.allocator, 2, 2, 1, 0);
     defer testing.allocator.free(tilemap.memory.tiles);
 
-    tilemap.setTile(Point(i32){ .x = 0, .y = 0 }, 1);
+    tilemap.set(Point(i32){ .x = 0, .y = 0 }, 1);
 
     var iterator = tilemap.iterator(true);
 
@@ -650,7 +650,7 @@ test "TilemapIterator on sub tilemap" {
     const submap_rect = Rect{ .x = 1, .y = 1, .w = 2, .h = 2 };
     var submap = tilemap.subTilemap(submap_rect).?;
 
-    submap.setTile(Point(i32){ .x = 2, .y = 2 }, 1);
+    submap.set(Point(i32){ .x = 2, .y = 2 }, 1);
 
     var iterator = submap.iterator(false);
 
@@ -684,7 +684,7 @@ test "TilemapIterator backwards on sub tilemap" {
     const submap_rect = Rect{ .x = 1, .y = 1, .w = 2, .h = 2 };
     var submap = tilemap.subTilemap(submap_rect).?;
 
-    submap.setTile(Point(i32){ .x = 2, .y = 2 }, 1);
+    submap.set(Point(i32){ .x = 2, .y = 2 }, 1);
 
     var iterator = submap.iterator(true);
 
