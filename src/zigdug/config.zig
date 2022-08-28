@@ -11,6 +11,6 @@ pub var maps = [_][]const u8{
     "data/maps/biggate.png",
 };
 
-// How often will the player and the map update (less is faster)
-pub const player_energy_max: f64 = 1.0 / 6.0; // 6 FPS
-pub const map_energy_max: f64 = 1.0 / 6.0; // 6 FPS
+// How often will entities update (less is faster)
+pub const energy_max: f32 = 1.0 / 6.0; // 6 FPS
+pub const map_energy_max: f32 = 1.0 / 6.0; // 6 FPS

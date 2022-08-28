@@ -52,8 +52,7 @@ pub const Entity = enum(u8) {
     back_wall,
     boulder,
     dirt,
-    door_closed,
-    door_open,
+    door,
     key,
     ladder,
     player,
@@ -62,35 +61,10 @@ pub const Entity = enum(u8) {
     debug,
 };
 
-pub const PlayerData = struct {
-    is_alive: bool = true,
-    energy: f64 = 1.0 / 6.0,
-    old_facing_direction: Direction = Direction.right,
-    old_state: PlayerState = PlayerState.standing,
-    new_facing_direction: Direction = Direction.right,
-    new_state: PlayerState = PlayerState.standing,
-};
-
-pub const PlayerState = enum(u8) {
-    climbing,
-    digging,
-    falling,
-    pushing,
-    running,
-    standing,
-};
-
 pub const PlayState = struct {
     substate: PlayStateSubState = .load_map,
     maps: [][]const u8,
     map_index: usize = 0,
-
-    map_energy: f64 = 0,
-    skip_next_tile: bool = false,
-    keys: i32 = 0,
-    is_level_beaten: bool = false,
-
-    player: PlayerData = PlayerData{},
 
     // Components
     animation_components: Tilemap(?Animation(Tile)),
@@ -98,95 +72,79 @@ pub const PlayState = struct {
     background_tile_components: Tilemap(Tile),
     climbable_components: Tilemap(bool),
     climber_components: Tilemap(bool),
+    climbing_components: Tilemap(bool),
+    diggable_components: Tilemap(bool),
+    digging_components: Tilemap(bool),
+    energy_components: Tilemap(?f32),
     entity_type_components: Tilemap(Entity),
+    exit_components: Tilemap(bool),
+    facing_components: Tilemap(?Direction),
     falling_components: Tilemap(bool),
     foreground_tile_components: Tilemap(Tile),
+    key_components: Tilemap(bool),
+    lock_components: Tilemap(bool),
     physics_components: Tilemap(bool),
+    playable_components: Tilemap(bool),
+    player_controlled_components: Tilemap(bool),
+    processed_components: Tilemap(bool),
+    pushing_components: Tilemap(bool),
     round_components: Tilemap(bool),
+    running_components: Tilemap(bool),
+    solid_components: Tilemap(bool),
 
     pub fn init(allocator: Allocator) !PlayState {
-        const entity_type_components = try Tilemap(Entity).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            Entity.none,
-        );
-        const background_tile_components = try Tilemap(Tile).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            Tile.none,
-        );
-        const foreground_tile_components = try Tilemap(Tile).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            Tile.none,
-        );
-        const falling_components = try Tilemap(bool).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            false,
-        );
-        const physics_components = try Tilemap(bool).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            false,
-        );
-        const round_components = try Tilemap(bool).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            false,
-        );
-        const climbable_components = try Tilemap(bool).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            false,
-        );
-        const climber_components = try Tilemap(bool).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            false,
-        );
-        const animation_components = try Tilemap(?Animation(Tile)).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            null,
-        );
-        const animation_counter_components = try Tilemap(?AnimationCounter).init(
-            allocator,
-            config.map_width,
-            config.map_height,
-            1,
-            null,
-        );
+        var animation_components = try initComponentTilemap(allocator, ?Animation(Tile), null);
+        var animation_counter_components = try initComponentTilemap(allocator, ?AnimationCounter, null);
+        var background_tile_components = try initComponentTilemap(allocator, Tile, Tile.none);
+        var climbable_components = try initComponentTilemap(allocator, bool, false);
+        var climber_components = try initComponentTilemap(allocator, bool, false);
+        var climbing_components = try initComponentTilemap(allocator, bool, false);
+        var diggable_components = try initComponentTilemap(allocator, bool, false);
+        var digging_components = try initComponentTilemap(allocator, bool, false);
+        var energy_components = try initComponentTilemap(allocator, ?f32, null);
+        var entity_type_components = try initComponentTilemap(allocator, Entity, Entity.none);
+        var exit_components = try initComponentTilemap(allocator, bool, false);
+        var facing_components = try initComponentTilemap(allocator, ?Direction, null);
+        var falling_components = try initComponentTilemap(allocator, bool, false);
+        var foreground_tile_components = try initComponentTilemap(allocator, Tile, Tile.none);
+        var key_components = try initComponentTilemap(allocator, bool, false);
+        var lock_components = try initComponentTilemap(allocator, bool, false);
+        var physics_components = try initComponentTilemap(allocator, bool, false);
+        var playable_components = try initComponentTilemap(allocator, bool, false);
+        var player_controlled_components = try initComponentTilemap(allocator, bool, false);
+        var processed_components = try initComponentTilemap(allocator, bool, false);
+        var pushing_components = try initComponentTilemap(allocator, bool, false);
+        var round_components = try initComponentTilemap(allocator, bool, false);
+        var running_components = try initComponentTilemap(allocator, bool, false);
+        var solid_components = try initComponentTilemap(allocator, bool, false);
+
         return PlayState{
             .maps = config.maps[0..],
+
             .animation_components = animation_components,
             .animation_counter_components = animation_counter_components,
             .background_tile_components = background_tile_components,
             .climbable_components = climbable_components,
             .climber_components = climber_components,
+            .climbing_components = climbing_components,
+            .diggable_components = diggable_components,
+            .digging_components = digging_components,
+            .energy_components = energy_components,
             .entity_type_components = entity_type_components,
+            .exit_components = exit_components,
+            .facing_components = facing_components,
             .falling_components = falling_components,
             .foreground_tile_components = foreground_tile_components,
+            .key_components = key_components,
+            .lock_components = lock_components,
             .physics_components = physics_components,
+            .playable_components = playable_components,
+            .player_controlled_components = player_controlled_components,
+            .processed_components = processed_components,
+            .pushing_components = pushing_components,
             .round_components = round_components,
+            .running_components = running_components,
+            .solid_components = solid_components,
         };
     }
 
@@ -199,28 +157,38 @@ pub const PlayState = struct {
     }
 
     fn updateLoadMapState(self: *PlayState, global: *ZigDug) void {
+        self.resetState();
+        self.loadMap(global, self.maps[self.map_index]);
+    }
+
+    fn resetState(self: *PlayState) void {
         self.substate = .play_map;
-        self.skip_next_tile = false;
-        self.is_level_beaten = false;
-        self.map_energy = 0;
-        self.keys = 0;
-        self.entity_type_components.setAll(.none);
-        self.background_tile_components.setAll(.none);
-        self.foreground_tile_components.setAll(.none);
-        self.physics_components.setAll(false);
-        self.round_components.setAll(false);
-        self.falling_components.setAll(false);
-        self.climbable_components.setAll(false);
-        self.climber_components.setAll(false);
+
+        // reset components
         self.animation_components.setAll(null);
         self.animation_counter_components.setAll(null);
-        self.player.is_alive = true;
-        self.player.energy = 1.0 / 6.0;
-        self.player.old_facing_direction = Direction.right;
-        self.player.old_state = PlayerState.standing;
-        self.player.new_facing_direction = Direction.right;
-        self.player.new_state = PlayerState.standing;
-        self.loadMap(global, self.maps[self.map_index]);
+        self.background_tile_components.setAll(.none);
+        self.climbable_components.setAll(false);
+        self.climber_components.setAll(false);
+        self.climbing_components.setAll(false);
+        self.diggable_components.setAll(false);
+        self.digging_components.setAll(false);
+        self.energy_components.setAll(null);
+        self.entity_type_components.setAll(.none);
+        self.exit_components.setAll(false);
+        self.facing_components.setAll(null);
+        self.falling_components.setAll(false);
+        self.foreground_tile_components.setAll(.none);
+        self.key_components.setAll(false);
+        self.lock_components.setAll(false);
+        self.physics_components.setAll(false);
+        self.playable_components.setAll(false);
+        self.player_controlled_components.setAll(false);
+        self.processed_components.setAll(false);
+        self.pushing_components.setAll(false);
+        self.round_components.setAll(false);
+        self.running_components.setAll(false);
+        self.solid_components.setAll(false);
     }
 
     fn loadMap(self: *PlayState, global: *ZigDug, filename: []const u8) void {
@@ -249,7 +217,7 @@ pub const PlayState = struct {
                 .y = @intCast(i32, @divFloor(i, @intCast(usize, height))),
             };
             switch (pixel_value) {
-                0xFF000000 => self.createEntity(global, .none, tilemap_point),
+                0xFF000000 => {},
                 0xFF532B1D => {
                     self.createEntity(global, .back_wall, tilemap_point);
                     self.createEntity(global, .space, tilemap_point);
@@ -272,8 +240,8 @@ pub const PlayState = struct {
                     self.createEntity(global, .player, tilemap_point);
                 },
                 0xFFA877FF => {
-                    self.createEntity(global, .back_wall, tilemap_point);
-                    self.createEntity(global, .door_closed, tilemap_point);
+                    self.createEntity(global, .door, tilemap_point);
+                    self.createEntity(global, .space, tilemap_point);
                 },
                 0xFF53257E => {
                     self.createEntity(global, .ladder, tilemap_point);
@@ -285,7 +253,7 @@ pub const PlayState = struct {
     }
 
     fn updatePlayMapState(self: *PlayState, global: *ZigDug, input: *Input, delta_s: f32) void {
-        if (self.is_level_beaten) {
+        if (self.isMapBeaten()) {
             self.map_index += 1;
             if (self.map_index >= self.maps.len) {
                 global.state = .credits;
@@ -295,7 +263,7 @@ pub const PlayState = struct {
             return;
         }
 
-        if (!self.player.is_alive) {
+        if (self.playable_components.findFirst(isTrue) == null) {
             self.substate = .load_map;
             return;
         }
@@ -305,276 +273,313 @@ pub const PlayState = struct {
             return;
         }
 
-        self.updatePlayer(global, input, delta_s);
-        self.animatePlayer(global);
-        self.updateMap(global, delta_s);
+        self.processed_components.setAll(false);
+
+        var energy_iterator = self.energy_components.iteratorBackward();
+
+        while (energy_iterator.next()) |item| {
+            if (!self.processed_components.get(item.point)) {
+                var point = item.point;
+                if (item.value) |energy| {
+                    const updated_energy = energy + delta_s;
+                    if (updated_energy >= config.energy_max) {
+                        self.resetEnergyForEntity(point, input);
+
+                        if (self.player_controlled_components.get(point)) {
+                            point = self.updatePlayer(global, point, input);
+                        }
+
+                        if (self.physics_components.get(point)) {
+                            point = self.updatePhysics(point);
+                        }
+
+                        if (self.lock_components.get(point)) {
+                            point = self.updateLockedDoor(point);
+                        }
+                    } else {
+                        self.energy_components.set(point, updated_energy);
+                    }
+                }
+                self.processed_components.set(point, true);
+            }
+        }
+
         self.updateAnimations(delta_s);
     }
 
-    fn updatePlayer(self: *PlayState, global: *ZigDug, input: *Input, delta_s: f32) void {
-        self.player.energy += delta_s;
-
-        if (self.player.energy >= config.player_energy_max) {
-            self.player.old_facing_direction = self.player.new_facing_direction;
-            self.player.old_state = self.player.new_state;
+    fn resetEnergyForEntity(self: *PlayState, point: Point(i32), input: *Input) void {
+        if (self.player_controlled_components.get(point)) {
             if (input.player_up or input.player_right or input.player_down or input.player_left) {
-                var direction: Direction = undefined;
-                if (input.player_up) direction = .up;
-                if (input.player_right) direction = .right;
-                if (input.player_down) direction = .down;
-                if (input.player_left) direction = .left;
-
-                self.tryPlayerMove(global, direction);
-                self.player.energy = 0;
-            } else {
-                self.player.new_state = .standing;
+                self.energy_components.set(point, 0);
             }
+        } else {
+            self.energy_components.set(point, 0);
         }
     }
 
-    fn tryPlayerMove(self: *PlayState, global: *ZigDug, direction: Direction) void {
-        if (self.entity_type_components.findFirst(isPlayer)) |start_pos| {
-            if (self.falling_components.get(start_pos)) {
-                if (!(self.entity_type_components.get(southOf(start_pos)) == .space) or self.climbable_components.get(start_pos)) {
-                    self.falling_components.set(start_pos, false);
-                    self.player.new_state = .standing;
-                } else {
-                    self.player.new_state = .falling;
-                    return;
+    fn isMapBeaten(self: *PlayState) bool {
+        if (self.exit_components.findFirst(isTrue)) |exit_point| {
+            if (self.playable_components.findFirst(isTrue)) |player_point| {
+                if (player_point.x == exit_point.x and player_point.y == exit_point.y) {
+                    return true;
                 }
             }
-            switch (direction) {
-                .up => {
-                    const above = northOf(start_pos);
-                    if (self.climbable_components.get(start_pos) and self.climbable_components.get(above)) {
-                        self.moveEntity(start_pos, above);
-                        self.createEntity(global, .space, start_pos);
-                        self.player.new_state = .climbing;
-                    }
-                },
-                else => {
-                    const new_pos = switch (direction) {
-                        .down => southOf(start_pos),
-                        .left => westOf(start_pos),
-                        .right => eastOf(start_pos),
-                        .up => unreachable,
-                    };
-                    const target_entity = self.entity_type_components.get(new_pos);
-                    switch (target_entity) {
-                        .space => {
-                            self.moveEntity(start_pos, new_pos);
-                            self.createEntity(global, .space, start_pos);
-                            self.player.new_state = .running;
-                        },
-                        .dirt => {
-                            self.moveEntity(start_pos, new_pos);
-                            self.createEntity(global, .space, start_pos);
-                            self.player.new_state = .digging;
-                        },
-                        .key => {
-                            self.moveEntity(start_pos, new_pos);
-                            self.createEntity(global, .space, start_pos);
-                            self.player.new_state = .running;
-                            self.keys -= 1;
-                            global.active_sounds[@enumToInt(Sound.gem)] = true;
-                        },
-                        .boulder => {
-                            switch (direction) {
-                                .right => {
-                                    if (self.entity_type_components.get(eastOf(new_pos)) == .space) {
-                                        self.pushBoulder(global, start_pos, new_pos, eastOf(new_pos));
-                                        self.player.new_state = .pushing;
-                                    } else {
-                                        self.player.new_state = .standing;
-                                    }
-                                },
-                                .left => {
-                                    if (self.entity_type_components.get(westOf(new_pos)) == .space) {
-                                        self.pushBoulder(global, start_pos, new_pos, westOf(new_pos));
-                                        self.player.new_state = .pushing;
-                                    } else {
-                                        self.player.new_state = .standing;
-                                    }
-                                },
-                                else => {
-                                    self.player.new_state = .standing;
-                                },
+        }
+        return false;
+    }
+
+    fn updatePlayer(self: *PlayState, global: *ZigDug, player_point: Point(i32), input: *Input) Point(i32) {
+        self.climbing_components.set(player_point, false);
+        self.digging_components.set(player_point, false);
+        self.pushing_components.set(player_point, false);
+        self.running_components.set(player_point, false);
+
+        var new_player_point = player_point;
+
+        var optional_direction: ?Direction = null;
+        if (input.player_up) optional_direction = .up;
+        if (input.player_right) optional_direction = .right;
+        if (input.player_down) optional_direction = .down;
+        if (input.player_left) optional_direction = .left;
+
+        if (optional_direction) |direction| {
+            new_player_point = self.tryPlayerMove(global, player_point, direction);
+
+            // hand over control to physics if empty space below and no ladder
+            if (!self.solid_components.get(southOf(new_player_point)) and
+                !self.climbable_components.get(new_player_point))
+            {
+                self.player_controlled_components.set(new_player_point, false);
+                self.physics_components.set(new_player_point, true);
+            }
+        }
+
+        self.animatePlayer(global);
+
+        return new_player_point;
+    }
+
+    fn tryPlayerMove(self: *PlayState, global: *ZigDug, origin: Point(i32), direction: Direction) Point(i32) {
+        self.facing_components.set(origin, direction);
+
+        // if (self.falling_components.get(origin)) {
+        //     if (self.solid_components.get(southOf(origin)) or self.climbable_components.get(origin)) {
+        //         self.falling_components.set(origin, false);
+        //     } else {
+        //         return;
+        //     }
+        // }
+
+        switch (direction) {
+            .up => {
+                const destination = northOf(origin);
+                if (self.climbable_components.get(origin) and self.climbable_components.get(destination)) {
+                    self.climbing_components.set(origin, true);
+                    self.moveEntity(origin, destination);
+                    return destination;
+                }
+            },
+            else => {
+                const destination = switch (direction) {
+                    .down => southOf(origin),
+                    .left => westOf(origin),
+                    .right => eastOf(origin),
+                    .up => unreachable,
+                };
+
+                if (!self.solid_components.get(destination)) {
+                    self.running_components.set(origin, true);
+                    self.moveEntity(origin, destination);
+                    return destination;
+                }
+
+                if (self.diggable_components.get(destination)) {
+                    self.digging_components.set(origin, true);
+                    self.moveEntity(origin, destination);
+                    return destination;
+                }
+
+                if (self.key_components.get(destination)) {
+                    self.running_components.set(origin, true);
+                    self.moveEntity(origin, destination);
+                    global.active_sounds[@enumToInt(Sound.gem)] = true;
+                    return destination;
+                }
+
+                if (self.round_components.get(destination)) {
+                    switch (direction) {
+                        .right => {
+                            if (!self.solid_components.get(eastOf(destination))) {
+                                self.pushing_components.set(origin, true);
+                                self.moveEntity(destination, eastOf(destination));
+                                self.moveEntity(origin, destination);
+                                return destination;
                             }
                         },
-                        .door_open => {
-                            self.createEntity(global, .space, start_pos);
-                            self.is_level_beaten = true;
-                            self.player.new_state = .running; // TODO: we can add a winning state here
+                        .left => {
+                            if (!self.solid_components.get(westOf(destination))) {
+                                self.pushing_components.set(origin, true);
+                                self.moveEntity(destination, westOf(destination));
+                                self.moveEntity(origin, destination);
+                                return destination;
+                            }
                         },
                         else => {
-                            self.player.new_state = .standing;
+                            return origin;
                         },
                     }
-                },
-            }
-            self.player.new_facing_direction = direction;
+                }
+            },
         }
-    }
-
-    fn isPlayer(entity_type: Entity) bool {
-        return entity_type == .player;
-    }
-
-    fn pushBoulder(
-        self: *PlayState,
-        global: *ZigDug,
-        player_origin: Point(i32),
-        boulder_origin: Point(i32),
-        boulder_target: Point(i32),
-    ) void {
-        self.moveEntity(boulder_origin, boulder_target);
-        self.moveEntity(player_origin, boulder_origin);
-        self.createEntity(global, .space, player_origin);
+        return origin;
     }
 
     fn animatePlayer(self: *PlayState, global: *ZigDug) void {
-        const old_state = self.player.old_state;
-        const new_state = self.player.new_state;
-        const old_facing_direction = self.player.old_facing_direction;
-        const new_facing_direction = self.player.new_facing_direction;
+        if (self.playable_components.findFirst(isTrue)) |point| {
+            const is_climbing = self.climbing_components.get(point);
+            const is_digging = self.digging_components.get(point);
+            const is_falling = self.falling_components.get(point);
+            const is_pushing = self.pushing_components.get(point);
+            const is_running = self.running_components.get(point);
+            const is_idle = !(is_climbing or is_digging or is_falling or is_pushing or is_running);
 
-        if (old_state == new_state and old_facing_direction == new_facing_direction) {
-            return;
-        }
+            const facing = self.facing_components.get(point).?;
 
-        if (self.entity_type_components.findFirst(isPlayer)) |player_point| {
             var animation: ?Animation(Tile) = null;
 
-            if (new_state == .climbing and new_facing_direction == .left) {
+            if (is_climbing and facing == .left) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .climbing and new_facing_direction == .right) {
+            } else if (is_climbing and facing == .right) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .digging and new_facing_direction == .left) {
+            } else if (is_digging and facing == .left) {
                 animation = global.player_digging_right_animation;
-            } else if (new_state == .digging and new_facing_direction == .right) {
+            } else if (is_digging and facing == .right) {
                 animation = global.player_digging_right_animation;
-            } else if (new_state == .digging and new_facing_direction == .down) {
+            } else if (is_digging and facing == .down) {
                 animation = global.player_digging_right_animation;
-            } else if (new_state == .falling and new_facing_direction == .left) {
+            } else if (is_falling and facing == .left) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .falling and new_facing_direction == .right) {
+            } else if (is_falling and facing == .right) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .pushing and new_facing_direction == .left) {
+            } else if (is_pushing and facing == .left) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .pushing and new_facing_direction == .right) {
+            } else if (is_pushing and facing == .right) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .running and new_facing_direction == .left) {
+            } else if (is_running and facing == .left) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .running and new_facing_direction == .right) {
+            } else if (is_running and facing == .right) {
                 animation = global.player_running_right_animation;
-            } else if (new_state == .standing and new_facing_direction == .left) {
+            } else if (is_idle and facing == .left) {
                 animation = global.player_idle_right_animation;
-            } else if (new_state == .standing and new_facing_direction == .right) {
+            } else if (is_idle and facing == .right) {
                 animation = global.player_idle_right_animation;
             }
 
             if (animation != null) {
-                self.setAnimation(player_point, animation.?);
+                self.startOrResumeAnimation(point, animation.?);
             }
         }
     }
 
-    fn updateMap(self: *PlayState, global: *ZigDug, delta_s: f32) void {
-        self.map_energy += delta_s;
+    fn updateLockedDoor(self: *PlayState, point: Point(i32)) Point(i32) {
+        if (self.key_components.findFirst(isTrue) == null) {
+            self.lock_components.set(point, false);
+            self.exit_components.set(point, true);
+            self.background_tile_components.set(point, .door_open_01);
+        }
+        return point;
+    }
 
-        if (self.map_energy >= config.map_energy_max) {
-            var entity_type_iterator = self.entity_type_components.iteratorBackward();
-
-            while (entity_type_iterator.next()) |item| {
-                if (!self.skip_next_tile) {
-                    if (self.physics_components.get(item.point)) {
-                        self.updatePhysics(global, item.point);
-                    } else if (item.value == .door_closed) {
-                        self.updateDoor(global, item.point);
-                    }
-                } else {
-                    self.skip_next_tile = false;
-                }
+    fn updatePhysics(self: *PlayState, origin: Point(i32)) Point(i32) {
+        if (self.climbable_components.get(origin) and self.climber_components.get(origin)) {
+            self.falling_components.set(origin, false);
+            if (self.playable_components.get(origin)) {
+                self.physics_components.set(origin, false);
+                self.player_controlled_components.set(origin, true);
+                self.energy_components.set(origin, config.energy_max);
             }
-            self.map_energy = 0;
-        }
-    }
-
-    fn updateDoor(self: *PlayState, global: *ZigDug, point: Point(i32)) void {
-        if (self.keys == 0) {
-            self.createEntity(global, .door_open, point);
-        }
-    }
-
-    fn updatePhysics(self: *PlayState, global: *ZigDug, start_point: Point(i32)) void {
-        var entity_type_components = self.entity_type_components;
-        var climbable_components = self.climbable_components;
-        var climber_components = self.climber_components;
-        var round_components = self.round_components;
-        var falling_components = self.falling_components;
-
-        // Case: entity can climb
-        if (climbable_components.get(start_point) and climber_components.get(start_point)) {
-            return;
+            return origin;
         }
 
-        const below_this_tile = southOf(start_point);
-        const entity_below = entity_type_components.get(below_this_tile);
+        const below = southOf(origin);
 
         // Case: entity falls straight down
-        if (entity_below == .space) {
-            if (falling_components.get(start_point)) {
-                self.moveEntity(start_point, below_this_tile);
-                self.createEntity(global, .space, start_point);
+        if (!self.solid_components.get(below)) {
+            if (self.falling_components.get(origin)) {
+                self.moveEntity(origin, below);
+                self.runPostPhysics(below);
+                return below;
             } else {
-                falling_components.set(start_point, true);
+                self.falling_components.set(origin, true);
+                return origin;
             }
-            return;
         }
 
         // Case: entity falls on player
-        if (entity_below == .player) {
-            if (falling_components.get(start_point)) {
-                self.player.is_alive = false;
+        if (self.playable_components.get(below)) {
+            if (self.falling_components.get(origin)) {
+                self.playable_components.set(below, false);
             }
-            return;
+            return origin;
         }
 
         // Case: round entity rolls off another round entity
-        if (round_components.get(start_point) and round_components.get(below_this_tile)) {
-            const entity_east = entity_type_components.get(eastOf(start_point));
-            const entity_south_east = entity_type_components.get(southEastOf(start_point));
-            if (entity_east == .space and entity_south_east == .space) {
-                if (falling_components.get(start_point)) {
-                    self.moveEntity(start_point, eastOf(start_point));
-                    self.createEntity(global, .space, start_point);
+        if (self.round_components.get(origin) and self.round_components.get(below)) {
+            const east = eastOf(origin);
+            const south_east = southEastOf(origin);
+            if (!self.solid_components.get(east) and !self.solid_components.get(south_east)) {
+                if (self.falling_components.get(origin)) {
+                    self.moveEntity(origin, east);
+                    self.runPostPhysics(east);
                 } else {
-                    falling_components.set(start_point, true);
+                    self.falling_components.set(origin, true);
                 }
-                return;
+                return east;
             }
 
-            const entity_west = entity_type_components.get(westOf(start_point));
-            const entity_south_west = entity_type_components.get(southWestOf(start_point));
-            if (entity_west == .space and entity_south_west == .space) {
-                if (falling_components.get(start_point)) {
-                    self.moveEntity(start_point, westOf(start_point));
-                    self.createEntity(global, .space, start_point);
-                    self.skip_next_tile = true;
+            const west = westOf(origin);
+            const south_west = southWestOf(origin);
+            if (!self.solid_components.get(west) and !self.solid_components.get(south_west)) {
+                if (self.falling_components.get(origin)) {
+                    self.moveEntity(origin, west);
+                    self.runPostPhysics(west);
                 } else {
-                    falling_components.set(start_point, true);
+                    self.falling_components.set(origin, true);
                 }
-                return;
+                return west;
             }
         }
 
-        // Case: none of the above, let's stop it if it's falling
-        if (falling_components.get(start_point)) {
-            falling_components.set(start_point, false);
+        // Case: none of the above:
+        // let's stop it if it's falling and hand over control to player if entity is playable
+        if (self.falling_components.get(origin)) {
+            self.falling_components.set(origin, false);
+            if (self.playable_components.get(origin)) {
+                self.player_controlled_components.set(origin, true);
+                self.physics_components.set(origin, false);
+                self.energy_components.set(origin, config.energy_max);
+            }
+        }
+
+        return origin;
+    }
+
+    fn runPostPhysics(self: *PlayState, point: Point(i32)) void {
+        if (self.climbable_components.get(point) and self.climber_components.get(point)) {
+            self.falling_components.set(point, false);
+            if (self.playable_components.get(point)) {
+                self.physics_components.set(point, false);
+                self.player_controlled_components.set(point, true);
+            }
         }
     }
 
-    fn setAnimation(self: *PlayState, point: Point(i32), animation: Animation(Tile)) void {
+    fn startOrResumeAnimation(self: *PlayState, point: Point(i32), animation: Animation(Tile)) void {
+        if (self.animation_components.get(point)) |current_animation| {
+            if (current_animation.frames.items[0].data == animation.frames.items[0].data) {
+                return;
+            }
+        }
         self.animation_components.set(point, animation);
         self.animation_counter_components.set(point, AnimationCounter{
             .frame_left_s = animation.frames.items[0].duration,
@@ -618,120 +623,71 @@ pub const PlayState = struct {
     }
 
     fn createEntity(self: *PlayState, global: *ZigDug, entity: Entity, point: Point(i32)) void {
-        var entity_type_components = self.entity_type_components;
-        var foreground_tile_components = self.foreground_tile_components;
-        var background_tile_components = self.background_tile_components;
-        var physics_components = self.physics_components;
-        var round_components = self.round_components;
-        var falling_components = self.falling_components;
-        var climbable_components = self.climbable_components;
-        var climber_components = self.climber_components;
-
         switch (entity) {
-            .none => {
-                entity_type_components.set(point, Entity.none);
-                foreground_tile_components.set(point, Tile.none);
-                background_tile_components.set(point, Tile.none);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climbable_components.set(point, false);
-                climber_components.set(point, false);
-            },
+            .none => {},
             .space => {
-                entity_type_components.set(point, Entity.space);
-                foreground_tile_components.set(point, Tile.space);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climber_components.set(point, false);
+                self.entity_type_components.set(point, Entity.space);
+                self.foreground_tile_components.set(point, Tile.space); // TODO: unnecessary tile
             },
             .wall => {
-                entity_type_components.set(point, Entity.wall);
-                foreground_tile_components.set(point, Tile.wall);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climber_components.set(point, false);
+                self.entity_type_components.set(point, Entity.wall);
+                self.foreground_tile_components.set(point, Tile.wall);
+                self.solid_components.set(point, true);
             },
             .dirt => {
-                entity_type_components.set(point, Entity.dirt);
-                foreground_tile_components.set(point, Tile.dirt);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climber_components.set(point, false);
+                self.diggable_components.set(point, true);
+                self.entity_type_components.set(point, Entity.dirt);
+                self.foreground_tile_components.set(point, Tile.dirt);
+                self.solid_components.set(point, true);
             },
             .boulder => {
-                entity_type_components.set(point, Entity.boulder);
-                foreground_tile_components.set(point, Tile.boulder);
-                physics_components.set(point, true);
-                round_components.set(point, true);
-                falling_components.set(point, false);
-                climber_components.set(point, false);
+                self.entity_type_components.set(point, Entity.boulder);
+                self.energy_components.set(point, 0);
+                self.foreground_tile_components.set(point, Tile.boulder);
+                self.physics_components.set(point, true);
+                self.round_components.set(point, true);
+                self.solid_components.set(point, true);
             },
             .key => {
-                entity_type_components.set(point, Entity.key);
-                foreground_tile_components.set(point, Tile.key);
-                physics_components.set(point, true);
-                round_components.set(point, true);
-                falling_components.set(point, false);
-                climber_components.set(point, false);
-
-                self.keys += 1;
+                self.energy_components.set(point, 0);
+                self.entity_type_components.set(point, Entity.key);
+                self.foreground_tile_components.set(point, Tile.key);
+                self.key_components.set(point, true);
+                self.physics_components.set(point, true);
+                self.round_components.set(point, true);
+                self.solid_components.set(point, true);
             },
-            .door_closed => {
-                entity_type_components.set(point, Entity.door_closed);
-                foreground_tile_components.set(point, Tile.door_closed);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climber_components.set(point, false);
-            },
-            .door_open => {
-                entity_type_components.set(point, Entity.door_open);
-                foreground_tile_components.set(point, Tile.door_open_01);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climber_components.set(point, false);
+            .door => {
+                self.entity_type_components.set(point, Entity.door);
+                self.energy_components.set(point, 0);
+                self.background_tile_components.set(point, Tile.door_closed);
+                self.lock_components.set(point, true);
             },
             .ladder => {
-                entity_type_components.set(point, Entity.ladder);
-                background_tile_components.set(point, Tile.ladder);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climbable_components.set(point, true);
-                climber_components.set(point, false);
+                self.entity_type_components.set(point, Entity.ladder);
+                self.background_tile_components.set(point, Tile.ladder);
+                self.climbable_components.set(point, true);
             },
             .back_wall => {
-                entity_type_components.set(point, Entity.back_wall);
-                background_tile_components.set(point, Tile.back_wall);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climbable_components.set(point, false);
-                climber_components.set(point, false);
+                self.entity_type_components.set(point, Entity.back_wall);
+                self.background_tile_components.set(point, Tile.back_wall);
             },
             .player => {
-                entity_type_components.set(point, Entity.player);
-                foreground_tile_components.set(point, Tile.player_idle_right_01);
-                physics_components.set(point, true);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climber_components.set(point, true);
-                self.setAnimation(point, global.player_idle_right_animation);
+                self.climber_components.set(point, true);
+                self.energy_components.set(point, config.energy_max);
+                self.entity_type_components.set(point, Entity.player);
+                self.facing_components.set(point, Direction.right);
+                self.foreground_tile_components.set(point, Tile.player_idle_right_01);
+                self.physics_components.set(point, true);
+                self.playable_components.set(point, true);
+                self.player_controlled_components.set(point, true);
+                self.solid_components.set(point, true);
+                self.startOrResumeAnimation(point, global.player_idle_right_animation);
             },
             .debug => {
-                entity_type_components.set(point, Entity.debug);
-                background_tile_components.set(point, Tile.debug);
-                foreground_tile_components.set(point, Tile.debug);
-                physics_components.set(point, false);
-                round_components.set(point, false);
-                falling_components.set(point, false);
-                climbable_components.set(point, false);
-                climber_components.set(point, false);
+                self.entity_type_components.set(point, Entity.debug);
+                self.background_tile_components.set(point, Tile.debug);
+                self.foreground_tile_components.set(point, Tile.debug);
             },
         }
     }
@@ -743,16 +699,38 @@ pub const PlayState = struct {
         self.animation_counter_components.set(start, null);
         self.climber_components.set(destination, self.climber_components.get(start));
         self.climber_components.set(start, false);
+        self.climbing_components.set(destination, self.climbing_components.get(start));
+        self.climbing_components.set(start, false);
+        self.diggable_components.set(destination, self.diggable_components.get(start));
+        self.diggable_components.set(start, false);
+        self.digging_components.set(destination, self.digging_components.get(start));
+        self.digging_components.set(start, false);
+        self.energy_components.set(destination, self.energy_components.get(start));
+        self.energy_components.set(start, null);
         self.entity_type_components.set(destination, self.entity_type_components.get(start));
-        self.entity_type_components.set(start, Entity.none);
+        self.entity_type_components.set(start, Entity.space);
+        self.facing_components.set(destination, self.facing_components.get(start));
+        self.facing_components.set(start, null);
         self.falling_components.set(destination, self.falling_components.get(start));
         self.falling_components.set(start, false);
         self.foreground_tile_components.set(destination, self.foreground_tile_components.get(start));
-        self.foreground_tile_components.set(start, self.foreground_tile_components.null_value);
+        self.foreground_tile_components.set(start, Tile.space);
+        self.key_components.set(destination, self.key_components.get(start));
+        self.key_components.set(start, false);
         self.physics_components.set(destination, self.physics_components.get(start));
         self.physics_components.set(start, false);
+        self.playable_components.set(destination, self.playable_components.get(start));
+        self.playable_components.set(start, false);
+        self.player_controlled_components.set(destination, self.player_controlled_components.get(start));
+        self.player_controlled_components.set(start, false);
+        self.pushing_components.set(destination, self.pushing_components.get(start));
+        self.pushing_components.set(start, false);
         self.round_components.set(destination, self.round_components.get(start));
         self.round_components.set(start, false);
+        self.running_components.set(destination, self.running_components.get(start));
+        self.running_components.set(start, false);
+        self.solid_components.set(destination, self.solid_components.get(start));
+        self.solid_components.set(start, false);
     }
 
     fn updateFinishMapState(self: *PlayState, global: *ZigDug) void {
@@ -760,6 +738,17 @@ pub const PlayState = struct {
         global.state = .credits;
     }
 };
+
+fn initComponentTilemap(allocator: Allocator, comptime T: type, default_value: T) !Tilemap(T) {
+    var tilemap = try Tilemap(T).init(
+        allocator,
+        config.map_width,
+        config.map_height,
+        1,
+        default_value,
+    );
+    return tilemap;
+}
 
 fn northOf(pos: Point(i32)) Point(i32) {
     return Point(i32){
@@ -803,4 +792,8 @@ fn southWestOf(pos: Point(i32)) Point(i32) {
 
 fn northWestOf(pos: Point(i32)) Point(i32) {
     return northOf(westOf(pos));
+}
+
+fn isTrue(value: bool) bool {
+    return value;
 }
