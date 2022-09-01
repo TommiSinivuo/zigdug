@@ -1,4 +1,7 @@
-const Allocator = @import("std").mem.Allocator;
+const std = @import("std");
+
+const Allocator = std.mem.Allocator;
+const AutoHashMap = std.AutoHashMap;
 
 const ray = @import("raylib.zig");
 const zigdug = @import("zigdug.zig");
@@ -7,14 +10,20 @@ const Sound = zigdug.Sound;
 const ZigDug = zigdug.ZigDug;
 
 pub const Audio = struct {
-    sounds: []ray.Sound,
+    sounds: AutoHashMap(zigdug.Sound, *ray.Sound),
 
     pub fn init(allocator: Allocator) !Audio {
         ray.InitAudioDevice();
-        var sounds = try allocator.alloc(ray.Sound, 3);
-        sounds[@enumToInt(Sound.move)] = ray.LoadSound("data/sounds/move.wav");
-        sounds[@enumToInt(Sound.boulder)] = ray.LoadSound("data/sounds/boulder.wav");
-        sounds[@enumToInt(Sound.gem)] = ray.LoadSound("data/sounds/gem.wav");
+        var sounds = AutoHashMap(zigdug.Sound, *ray.Sound).init(allocator);
+        const move_sound_ptr = try allocator.create(ray.Sound);
+        const boulder_sound_ptr = try allocator.create(ray.Sound);
+        const gem_sound_ptr = try allocator.create(ray.Sound);
+        move_sound_ptr.* = ray.LoadSound("data/sounds/move.wav");
+        boulder_sound_ptr.* = ray.LoadSound("data/sounds/boulder.wav");
+        gem_sound_ptr.* = ray.LoadSound("data/sounds/gem.wav");
+        try sounds.put(.move, move_sound_ptr);
+        try sounds.put(.boulder, boulder_sound_ptr);
+        try sounds.put(.gem, gem_sound_ptr);
         return Audio{ .sounds = sounds };
     }
 
@@ -27,8 +36,15 @@ pub const Audio = struct {
     }
 
     pub fn play(self: *Audio, global: *ZigDug) void {
-        for (global.active_sounds[0..3]) |is_active, i| {
-            if (is_active) ray.PlaySound(self.sounds[i]);
+        if (global.state == .play) {
+            const activated_sounds = global.play_state.activated_sounds;
+
+            var sound_key_iterator = activated_sounds.keyIterator();
+            while (sound_key_iterator.next()) |sound_key| {
+                if (self.sounds.get(sound_key.*)) |ray_sound| {
+                    ray.PlaySound(ray_sound.*);
+                }
+            }
         }
     }
 };

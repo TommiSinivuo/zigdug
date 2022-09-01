@@ -30,7 +30,7 @@ pub fn Animation(comptime T: type) type {
     };
 }
 
-fn AnimationFrame(comptime T: type) type {
+pub fn AnimationFrame(comptime T: type) type {
     return struct {
         duration: f32,
         data: T,

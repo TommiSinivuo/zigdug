@@ -1,6 +1,8 @@
 pub const map_width = 16;
 pub const map_height = 16;
 
+pub const max_sounds_per_frame = 16;
+
 pub var maps = [_][]const u8{
     "data/maps/01.png",
     "data/maps/02.png",
