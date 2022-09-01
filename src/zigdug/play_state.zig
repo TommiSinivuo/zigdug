@@ -35,6 +35,7 @@ pub const Tile = enum(u8) {
     none,
     back_wall,
     boulder,
+    debug,
     dirt,
     door_closed,
     door_open_01,
@@ -43,15 +44,24 @@ pub const Tile = enum(u8) {
     door_open_04,
     key,
     ladder,
-    player_idle_right_01,
-    player_idle_right_02,
-    player_running_right_01,
-    player_running_right_02,
+    player_digging_left_01,
+    player_digging_left_02,
     player_digging_right_01,
     player_digging_right_02,
+    player_idle_left_01,
+    player_idle_left_02,
+    player_idle_left_03,
+    player_idle_left_04,
+    player_idle_right_01,
+    player_idle_right_02,
+    player_idle_right_03,
+    player_idle_right_04,
+    player_running_left_01,
+    player_running_left_02,
+    player_running_right_01,
+    player_running_right_02,
     space,
     wall,
-    debug,
 };
 
 pub const Entity = enum(u8) {
@@ -76,10 +86,13 @@ pub const PlayState = struct {
     activated_sounds: AutoHashMap(Sound, bool),
 
     // Animations
-    player_idle_right_animation: Animation(Tile),
-    player_running_right_animation: Animation(Tile),
-    player_digging_right_animation: Animation(Tile),
     open_door_animation: Animation(Tile),
+    player_digging_left_animation: Animation(Tile),
+    player_digging_right_animation: Animation(Tile),
+    player_idle_left_animation: Animation(Tile),
+    player_idle_right_animation: Animation(Tile),
+    player_running_left_animation: Animation(Tile),
+    player_running_right_animation: Animation(Tile),
 
     // Components
     animation_components: Tilemap(?Animation(Tile)),
@@ -111,23 +124,39 @@ pub const PlayState = struct {
         var activated_sounds = AutoHashMap(Sound, bool).init(allocator);
         try activated_sounds.ensureTotalCapacity(config.max_sounds_per_frame);
 
-        var player_idle_right_animation = Animation(Tile).init(allocator);
-        try player_idle_right_animation.add_frame(.player_idle_right_01, 1.0 / 2.0);
-        try player_idle_right_animation.add_frame(.player_idle_right_02, 1.0 / 2.0);
-
-        var player_running_right_animation = Animation(Tile).init(allocator);
-        try player_running_right_animation.add_frame(.player_running_right_01, 1.0 / 6.0);
-        try player_running_right_animation.add_frame(.player_running_right_02, 1.0 / 6.0);
-
-        var player_digging_right_animation = Animation(Tile).init(allocator);
-        try player_digging_right_animation.add_frame(.player_digging_right_01, 1.0 / 12.0);
-        try player_digging_right_animation.add_frame(.player_digging_right_02, 1.0 / 12.0);
-
         var open_door_animation = Animation(Tile).init(allocator);
         try open_door_animation.add_frame(.door_open_01, 1.0 / 3.0);
         try open_door_animation.add_frame(.door_open_02, 1.0 / 3.0);
         try open_door_animation.add_frame(.door_open_03, 1.0 / 3.0);
         try open_door_animation.add_frame(.door_open_04, 1.0 / 3.0);
+
+        var player_digging_left_animation = Animation(Tile).init(allocator);
+        try player_digging_left_animation.add_frame(.player_digging_left_01, 1.0 / 12.0);
+        try player_digging_left_animation.add_frame(.player_digging_left_02, 1.0 / 12.0);
+
+        var player_digging_right_animation = Animation(Tile).init(allocator);
+        try player_digging_right_animation.add_frame(.player_digging_right_01, 1.0 / 12.0);
+        try player_digging_right_animation.add_frame(.player_digging_right_02, 1.0 / 12.0);
+
+        var player_idle_left_animation = Animation(Tile).init(allocator);
+        try player_idle_left_animation.add_frame(.player_idle_left_01, 1.0 / 2.0);
+        try player_idle_left_animation.add_frame(.player_idle_left_02, 1.0 / 2.0);
+        try player_idle_left_animation.add_frame(.player_idle_left_03, 1.0 / 2.0);
+        try player_idle_left_animation.add_frame(.player_idle_left_04, 1.0 / 2.0);
+
+        var player_idle_right_animation = Animation(Tile).init(allocator);
+        try player_idle_right_animation.add_frame(.player_idle_right_01, 1.0 / 2.0);
+        try player_idle_right_animation.add_frame(.player_idle_right_02, 1.0 / 2.0);
+        try player_idle_right_animation.add_frame(.player_idle_right_03, 1.0 / 2.0);
+        try player_idle_right_animation.add_frame(.player_idle_right_04, 1.0 / 2.0);
+
+        var player_running_left_animation = Animation(Tile).init(allocator);
+        try player_running_left_animation.add_frame(.player_running_left_01, 1.0 / 6.0);
+        try player_running_left_animation.add_frame(.player_running_left_02, 1.0 / 6.0);
+
+        var player_running_right_animation = Animation(Tile).init(allocator);
+        try player_running_right_animation.add_frame(.player_running_right_01, 1.0 / 6.0);
+        try player_running_right_animation.add_frame(.player_running_right_02, 1.0 / 6.0);
 
         var animation_components = try initComponentTilemap(allocator, ?Animation(Tile), null);
         var animation_counter_components = try initComponentTilemap(allocator, ?AnimationCounter, null);
@@ -159,10 +188,13 @@ pub const PlayState = struct {
 
             .activated_sounds = activated_sounds,
 
-            .player_idle_right_animation = player_idle_right_animation,
-            .player_running_right_animation = player_running_right_animation,
-            .player_digging_right_animation = player_digging_right_animation,
             .open_door_animation = open_door_animation,
+            .player_digging_left_animation = player_digging_left_animation,
+            .player_digging_right_animation = player_digging_right_animation,
+            .player_idle_left_animation = player_idle_left_animation,
+            .player_idle_right_animation = player_idle_right_animation,
+            .player_running_left_animation = player_running_left_animation,
+            .player_running_right_animation = player_running_right_animation,
 
             .animation_components = animation_components,
             .animation_counter_components = animation_counter_components,
@@ -484,29 +516,29 @@ pub const PlayState = struct {
             var animation: ?Animation(Tile) = null;
 
             if (is_climbing and facing == .left) {
-                animation = self.player_running_right_animation;
+                animation = self.player_running_left_animation;
             } else if (is_climbing and facing == .right) {
                 animation = self.player_running_right_animation;
             } else if (is_digging and facing == .left) {
-                animation = self.player_digging_right_animation;
+                animation = self.player_digging_left_animation;
             } else if (is_digging and facing == .right) {
                 animation = self.player_digging_right_animation;
             } else if (is_digging and facing == .down) {
                 animation = self.player_digging_right_animation;
             } else if (is_falling and facing == .left) {
-                animation = self.player_running_right_animation;
+                animation = self.player_running_left_animation;
             } else if (is_falling and facing == .right) {
                 animation = self.player_running_right_animation;
             } else if (is_pushing and facing == .left) {
-                animation = self.player_running_right_animation;
+                animation = self.player_running_left_animation;
             } else if (is_pushing and facing == .right) {
                 animation = self.player_running_right_animation;
             } else if (is_running and facing == .left) {
-                animation = self.player_running_right_animation;
+                animation = self.player_running_left_animation;
             } else if (is_running and facing == .right) {
                 animation = self.player_running_right_animation;
             } else if (is_idle and facing == .left) {
-                animation = self.player_idle_right_animation;
+                animation = self.player_idle_left_animation;
             } else if (is_idle and facing == .right) {
                 animation = self.player_idle_right_animation;
             }

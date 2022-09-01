@@ -15,15 +15,19 @@ pub const Audio = struct {
     pub fn init(allocator: Allocator) !Audio {
         ray.InitAudioDevice();
         var sounds = AutoHashMap(zigdug.Sound, *ray.Sound).init(allocator);
+
         const move_sound_ptr = try allocator.create(ray.Sound);
         const boulder_sound_ptr = try allocator.create(ray.Sound);
         const gem_sound_ptr = try allocator.create(ray.Sound);
+
         move_sound_ptr.* = ray.LoadSound("data/sounds/move.wav");
         boulder_sound_ptr.* = ray.LoadSound("data/sounds/boulder.wav");
         gem_sound_ptr.* = ray.LoadSound("data/sounds/gem.wav");
+
         try sounds.put(.move, move_sound_ptr);
         try sounds.put(.boulder, boulder_sound_ptr);
         try sounds.put(.gem, gem_sound_ptr);
+
         return Audio{ .sounds = sounds };
     }
 
