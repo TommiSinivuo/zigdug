@@ -2,7 +2,7 @@
 //
 // Sprite sheet: spritesheet.png (512 x 256)
 //
-// $TexturePacker:SmartUpdate:fd412c5dfba18f4294c748f2ff197389:f41332238c00f2b99403a8e94d1b3b17:1b6881295bff6f61dedfffcb681fdac5$
+// $TexturePacker:SmartUpdate:196310b930c790ce7553c1b591c1927a:7853f853b78d5fc83ca29ff257735758:1b6881295bff6f61dedfffcb681fdac5$
 
 pub const SpriteRect = struct {
     x: i32,
@@ -250,92 +250,120 @@ pub const player_digging_right_02: SpriteRect = SpriteRect{
     .height = 16,
 };
 
-pub const player_idle_left_01: SpriteRect = SpriteRect{
+pub const player_falling_left_01: SpriteRect = SpriteRect{
     .x = 304,
+    .y = 224,
+    .width = 16,
+    .height = 16,
+};
+
+pub const player_falling_left_02: SpriteRect = SpriteRect{
+    .x = 304,
+    .y = 240,
+    .width = 16,
+    .height = 16,
+};
+
+pub const player_falling_right_01: SpriteRect = SpriteRect{
+    .x = 320,
+    .y = 224,
+    .width = 16,
+    .height = 16,
+};
+
+pub const player_falling_right_02: SpriteRect = SpriteRect{
+    .x = 320,
+    .y = 240,
+    .width = 16,
+    .height = 16,
+};
+
+pub const player_idle_left_01: SpriteRect = SpriteRect{
+    .x = 336,
     .y = 224,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_left_02: SpriteRect = SpriteRect{
-    .x = 304,
+    .x = 336,
     .y = 240,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_left_03: SpriteRect = SpriteRect{
-    .x = 320,
+    .x = 352,
     .y = 224,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_left_04: SpriteRect = SpriteRect{
-    .x = 320,
+    .x = 352,
     .y = 240,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_right: SpriteRect = SpriteRect{
-    .x = 336,
+    .x = 368,
     .y = 224,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_right_01: SpriteRect = SpriteRect{
-    .x = 336,
+    .x = 368,
     .y = 240,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_right_02: SpriteRect = SpriteRect{
-    .x = 352,
+    .x = 384,
     .y = 224,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_right_03: SpriteRect = SpriteRect{
-    .x = 352,
+    .x = 384,
     .y = 240,
     .width = 16,
     .height = 16,
 };
 
 pub const player_idle_right_04: SpriteRect = SpriteRect{
-    .x = 368,
+    .x = 400,
     .y = 224,
     .width = 16,
     .height = 16,
 };
 
 pub const player_running_left_01: SpriteRect = SpriteRect{
-    .x = 368,
+    .x = 400,
     .y = 240,
     .width = 16,
     .height = 16,
 };
 
 pub const player_running_left_02: SpriteRect = SpriteRect{
-    .x = 384,
+    .x = 416,
     .y = 224,
     .width = 16,
     .height = 16,
 };
 
 pub const player_running_right_01: SpriteRect = SpriteRect{
-    .x = 384,
+    .x = 416,
     .y = 240,
     .width = 16,
     .height = 16,
 };
 
 pub const player_running_right_02: SpriteRect = SpriteRect{
-    .x = 400,
+    .x = 432,
     .y = 224,
     .width = 16,
     .height = 16,
@@ -356,7 +384,7 @@ pub const ui_background: SpriteRect = SpriteRect{
 };
 
 pub const wall: SpriteRect = SpriteRect{
-    .x = 400,
+    .x = 432,
     .y = 240,
     .width = 16,
     .height = 16,

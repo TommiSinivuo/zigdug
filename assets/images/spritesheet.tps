@@ -207,6 +207,10 @@
             <key type="filename">16x16/png/player_digging_left_02.png</key>
             <key type="filename">16x16/png/player_digging_right_01.png</key>
             <key type="filename">16x16/png/player_digging_right_02.png</key>
+            <key type="filename">16x16/png/player_falling_left_01.png</key>
+            <key type="filename">16x16/png/player_falling_left_02.png</key>
+            <key type="filename">16x16/png/player_falling_right_01.png</key>
+            <key type="filename">16x16/png/player_falling_right_02.png</key>
             <key type="filename">16x16/png/player_idle_left_01.png</key>
             <key type="filename">16x16/png/player_idle_left_02.png</key>
             <key type="filename">16x16/png/player_idle_left_03.png</key>

@@ -48,6 +48,10 @@ pub const Tile = enum(u8) {
     player_digging_left_02,
     player_digging_right_01,
     player_digging_right_02,
+    player_falling_left_01,
+    player_falling_left_02,
+    player_falling_right_01,
+    player_falling_right_02,
     player_idle_left_01,
     player_idle_left_02,
     player_idle_left_03,
@@ -89,6 +93,8 @@ pub const PlayState = struct {
     open_door_animation: Animation(Tile),
     player_digging_left_animation: Animation(Tile),
     player_digging_right_animation: Animation(Tile),
+    player_falling_left_animation: Animation(Tile),
+    player_falling_right_animation: Animation(Tile),
     player_idle_left_animation: Animation(Tile),
     player_idle_right_animation: Animation(Tile),
     player_running_left_animation: Animation(Tile),
@@ -137,6 +143,14 @@ pub const PlayState = struct {
         var player_digging_right_animation = Animation(Tile).init(allocator);
         try player_digging_right_animation.add_frame(.player_digging_right_01, 1.0 / 12.0);
         try player_digging_right_animation.add_frame(.player_digging_right_02, 1.0 / 12.0);
+
+        var player_falling_left_animation = Animation(Tile).init(allocator);
+        try player_falling_left_animation.add_frame(.player_falling_left_01, 1.0 / 6.0);
+        try player_falling_left_animation.add_frame(.player_falling_left_02, 1.0 / 6.0);
+
+        var player_falling_right_animation = Animation(Tile).init(allocator);
+        try player_falling_right_animation.add_frame(.player_falling_right_01, 1.0 / 6.0);
+        try player_falling_right_animation.add_frame(.player_falling_right_02, 1.0 / 6.0);
 
         var player_idle_left_animation = Animation(Tile).init(allocator);
         try player_idle_left_animation.add_frame(.player_idle_left_01, 1.0 / 2.0);
@@ -191,6 +205,8 @@ pub const PlayState = struct {
             .open_door_animation = open_door_animation,
             .player_digging_left_animation = player_digging_left_animation,
             .player_digging_right_animation = player_digging_right_animation,
+            .player_falling_left_animation = player_falling_left_animation,
+            .player_falling_right_animation = player_falling_right_animation,
             .player_idle_left_animation = player_idle_left_animation,
             .player_idle_right_animation = player_idle_right_animation,
             .player_running_left_animation = player_running_left_animation,
@@ -380,6 +396,7 @@ pub const PlayState = struct {
             }
         }
 
+        self.animatePlayer();
         self.updateAnimations(delta_s);
     }
 
@@ -430,13 +447,13 @@ pub const PlayState = struct {
             }
         }
 
-        self.animatePlayer();
-
         return new_player_point;
     }
 
     fn tryPlayerMove(self: *PlayState, origin: Point(i32), direction: Direction) Point(i32) {
-        self.facing_components.set(origin, direction);
+        if (direction == .left or direction == .right) {
+            self.facing_components.set(origin, direction);
+        }
 
         switch (direction) {
             .up => {
@@ -523,12 +540,10 @@ pub const PlayState = struct {
                 animation = self.player_digging_left_animation;
             } else if (is_digging and facing == .right) {
                 animation = self.player_digging_right_animation;
-            } else if (is_digging and facing == .down) {
-                animation = self.player_digging_right_animation;
             } else if (is_falling and facing == .left) {
-                animation = self.player_running_left_animation;
+                animation = self.player_falling_left_animation;
             } else if (is_falling and facing == .right) {
-                animation = self.player_running_right_animation;
+                animation = self.player_falling_right_animation;
             } else if (is_pushing and facing == .left) {
                 animation = self.player_running_left_animation;
             } else if (is_pushing and facing == .right) {
