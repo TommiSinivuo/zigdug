@@ -2,7 +2,9 @@ const config = @import("config.zig");
 const ray = @import("raylib.zig");
 const spritesheet = @import("spritesheet.zig");
 const zigdug = @import("zigdug.zig");
+const math = zigdug.math;
 
+const Move = zigdug.Move;
 const PauseState = zigdug.PauseState;
 const PlayState = zigdug.PlayState;
 const Point = zigdug.Point;
@@ -95,19 +97,34 @@ pub const Renderer = struct {
     fn drawPlayState(self: *Renderer, play_state: *PlayState) void {
         ray.ClearBackground(ray.BLACK);
 
-        self.drawTilemap(&play_state.background_tile_components);
-        self.drawTilemap(&play_state.foreground_tile_components);
+        self.drawBackground(play_state);
+        self.drawForeground(play_state);
     }
 
-    fn drawTilemap(self: *Renderer, tilemap: *Tilemap(Tile)) void {
-        var tilemap_iterator = tilemap.iteratorForward();
+    fn drawBackground(self: *Renderer, play_state: *PlayState) void {
+        var tilemap_iterator = play_state.background_tile_components.iteratorForward();
 
         while (tilemap_iterator.next()) |item| {
-            self.drawTile(item.value, item.point);
+            const screen_point = tileToScreenPoint(item.point);
+            self.drawTileOnScreen(item.value, screen_point);
         }
     }
 
-    fn drawTile(self: *Renderer, tile: Tile, tile_point: Point(i32)) void {
+    fn drawForeground(self: *Renderer, play_state: *PlayState) void {
+        var tilemap_iterator = play_state.foreground_tile_components.iteratorForward();
+
+        while (tilemap_iterator.next()) |item| {
+            var screen_point: ray.Vector2 = undefined;
+            if (play_state.move_components.get(item.point)) |move| {
+                screen_point = movingTileToScreenPoint(move);
+            } else {
+                screen_point = tileToScreenPoint(item.point);
+            }
+            self.drawTileOnScreen(item.value, screen_point);
+        }
+    }
+
+    fn drawTileOnScreen(self: *Renderer, tile: Tile, screen_point: ray.Vector2) void {
         const optional_sprite_rect: ?spritesheet.SpriteRect = switch (tile) {
             .none => spritesheet.black,
             .back_wall => spritesheet.back_wall,
@@ -146,12 +163,10 @@ pub const Renderer = struct {
         };
 
         if (optional_sprite_rect) |sprite_rect| {
-            const screen_position = tileToScreenCoordinates(tile_point);
-
             ray.WDrawTextureRec(
                 self.spritesheet_texture,
                 &spriteRectToRectangle(sprite_rect),
-                &screen_position,
+                &screen_point,
                 &ray.WHITE,
             );
         }
@@ -223,10 +238,25 @@ pub const Renderer = struct {
 // Common utils
 //------------------------------------------------------------------------------------
 
-fn tileToScreenCoordinates(tile_point: Point(i32)) ray.Vector2 {
+fn tileToScreenPoint(tile_point: Point(i32)) ray.Vector2 {
     return ray.Vector2{
         .x = @intToFloat(f32, tile_point.x) * config.render_tile_size,
         .y = @intToFloat(f32, tile_point.y) * config.render_tile_size,
+    };
+}
+
+fn movingTileToScreenPoint(move: Move) ray.Vector2 {
+    const origin = ray.Vector2{
+        .x = @intToFloat(f32, move.origin.x) * config.render_tile_size,
+        .y = @intToFloat(f32, move.origin.y) * config.render_tile_size,
+    };
+    const destination = ray.Vector2{
+        .x = @intToFloat(f32, move.destination.x) * config.render_tile_size,
+        .y = @intToFloat(f32, move.destination.y) * config.render_tile_size,
+    };
+    return ray.Vector2{
+        .x = math.lerp(origin.x, destination.x, move.lerp_amount),
+        .y = math.lerp(origin.y, destination.y, move.lerp_amount),
     };
 }
 

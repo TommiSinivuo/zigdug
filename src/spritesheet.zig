@@ -2,7 +2,7 @@
 //
 // Sprite sheet: spritesheet.png (512 x 256)
 //
-// $TexturePacker:SmartUpdate:196310b930c790ce7553c1b591c1927a:7853f853b78d5fc83ca29ff257735758:1b6881295bff6f61dedfffcb681fdac5$
+// $TexturePacker:SmartUpdate:fe227d919c67f8af91e1ad73370025e0:76d162d90eeb0b1b9fb362ed654c7fbc:1b6881295bff6f61dedfffcb681fdac5$
 
 pub const SpriteRect = struct {
     x: i32,

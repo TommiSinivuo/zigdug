@@ -31,7 +31,7 @@ pub fn main() !void {
     var game_input = Input{};
 
     ray.SetExitKey(ray.KeyboardKey.KEY_NULL);
-    ray.SetTargetFPS(30);
+    ray.SetTargetFPS(60);
 
     while (!ray.WindowShouldClose() and game.is_running) {
         const delta_s = ray.GetFrameTime();

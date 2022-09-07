@@ -82,6 +82,12 @@ pub const Entity = enum(u8) {
     debug,
 };
 
+pub const Move = struct {
+    origin: Point(i32),
+    destination: Point(i32),
+    lerp_amount: f32 = 0,
+};
+
 pub const PlayState = struct {
     substate: PlayStateSubState = .load_map,
     maps: [][]const u8,
@@ -117,6 +123,7 @@ pub const PlayState = struct {
     foreground_tile_components: Tilemap(Tile),
     key_components: Tilemap(bool),
     lock_components: Tilemap(bool),
+    move_components: Tilemap(?Move),
     physics_components: Tilemap(bool),
     playable_components: Tilemap(bool),
     player_controlled_components: Tilemap(bool),
@@ -188,6 +195,7 @@ pub const PlayState = struct {
         var foreground_tile_components = try initComponentTilemap(allocator, Tile, Tile.none);
         var key_components = try initComponentTilemap(allocator, bool, false);
         var lock_components = try initComponentTilemap(allocator, bool, false);
+        var move_components = try initComponentTilemap(allocator, ?Move, null);
         var physics_components = try initComponentTilemap(allocator, bool, false);
         var playable_components = try initComponentTilemap(allocator, bool, false);
         var player_controlled_components = try initComponentTilemap(allocator, bool, false);
@@ -228,6 +236,7 @@ pub const PlayState = struct {
             .foreground_tile_components = foreground_tile_components,
             .key_components = key_components,
             .lock_components = lock_components,
+            .move_components = move_components,
             .physics_components = physics_components,
             .playable_components = playable_components,
             .player_controlled_components = player_controlled_components,
@@ -273,6 +282,7 @@ pub const PlayState = struct {
         self.foreground_tile_components.setAll(.none);
         self.key_components.setAll(false);
         self.lock_components.setAll(false);
+        self.move_components.setAll(null);
         self.physics_components.setAll(false);
         self.playable_components.setAll(false);
         self.player_controlled_components.setAll(false);
@@ -375,6 +385,10 @@ pub const PlayState = struct {
                 if (item.value) |energy| {
                     const updated_energy = energy + delta_s;
                     if (updated_energy >= config.energy_max) {
+                        if (self.move_components.get(point) != null) {
+                            self.move_components.set(point, null);
+                        }
+
                         self.resetEnergyForEntity(point, input);
 
                         if (self.player_controlled_components.get(point)) {
@@ -390,6 +404,18 @@ pub const PlayState = struct {
                         }
                     } else {
                         self.energy_components.set(point, updated_energy);
+                    }
+
+                    // Calculate linear interpolation for rendering moving entities
+                    if (self.move_components.get(point)) |move| {
+                        if (self.energy_components.get(point)) |current_energy| {
+                            const lerp_amount = current_energy / config.energy_max;
+                            self.move_components.set(point, Move{
+                                .origin = move.origin,
+                                .destination = move.destination,
+                                .lerp_amount = lerp_amount,
+                            });
+                        }
                     }
                 }
                 self.processed_components.set(point, true);
@@ -611,7 +637,11 @@ pub const PlayState = struct {
         if (self.round_components.get(origin) and self.round_components.get(below)) {
             const east = eastOf(origin);
             const south_east = southEastOf(origin);
-            if (!self.solid_components.get(east) and !self.solid_components.get(south_east)) {
+            const north_east = northEastOf(origin);
+            if (!self.solid_components.get(east) and
+                !self.solid_components.get(south_east) and
+                !self.falling_components.get(north_east))
+            {
                 if (self.falling_components.get(origin)) {
                     self.moveEntity(origin, east);
                     self.runPostPhysics(east);
@@ -623,7 +653,11 @@ pub const PlayState = struct {
 
             const west = westOf(origin);
             const south_west = southWestOf(origin);
-            if (!self.solid_components.get(west) and !self.solid_components.get(south_west)) {
+            const north_west = northWestOf(origin);
+            if (!self.solid_components.get(west) and
+                !self.solid_components.get(south_west) and
+                !self.falling_components.get(north_west))
+            {
                 if (self.falling_components.get(origin)) {
                     self.moveEntity(origin, west);
                     self.runPostPhysics(west);
@@ -820,6 +854,8 @@ pub const PlayState = struct {
         self.running_components.set(start, false);
         self.solid_components.set(destination, self.solid_components.get(start));
         self.solid_components.set(start, false);
+
+        self.move_components.set(destination, Move{ .origin = start, .destination = destination });
     }
 
     fn updateFinishMapState(self: *PlayState, global: *ZigDug) void {

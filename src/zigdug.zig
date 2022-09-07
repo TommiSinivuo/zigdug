@@ -6,6 +6,7 @@ const mem = std.mem;
 const Allocator = mem.Allocator;
 
 pub const config = @import("zigdug/config.zig");
+pub const math = @import("zigdug/math.zig");
 
 const common = @import("zigdug/common.zig");
 const play_state = @import("zigdug/play_state.zig");
@@ -13,6 +14,7 @@ const ray = @import("raylib.zig");
 
 pub const CreditsState = @import("zigdug/credits_state.zig").CreditsState;
 pub const Direction = common.Direction;
+pub const Move = play_state.Move;
 pub const PauseState = @import("zigdug/pause_state.zig").PauseState;
 pub const PlayState = play_state.PlayState;
 pub const Point = common.Point;
