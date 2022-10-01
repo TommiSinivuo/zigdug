@@ -279,6 +279,7 @@ pub const PixelFormat = enum(c_int) {
 pub extern fn InitWindow(width: c_int, height: c_int, title: [*c]const u8) void;
 pub extern fn WindowShouldClose() bool;
 pub extern fn CloseWindow() void;
+pub extern fn IsWindowResized() bool;
 pub extern fn SetWindowPosition(x: c_int, y: c_int) void;
 pub extern fn SetWindowSize(width: c_int, height: c_int) void;
 pub extern fn GetCurrentMonitor() c_int;

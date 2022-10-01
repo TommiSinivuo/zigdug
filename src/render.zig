@@ -54,6 +54,10 @@ pub const Renderer = struct {
         ray.EndDrawing();
     }
 
+    pub fn scaleToScreen(self: *Renderer) void {
+        ray.ScaleViewportToScreen(&self.viewport);
+    }
+
     //------------------------------------------------------------------------------------
     // Title screen
     //------------------------------------------------------------------------------------

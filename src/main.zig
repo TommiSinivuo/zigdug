@@ -1,3 +1,5 @@
+const builtin = @import("builtin");
+
 const config = @import("config.zig");
 const ray = @import("raylib.zig");
 const std = @import("std");
@@ -9,18 +11,26 @@ const Renderer = @import("render.zig").Renderer;
 const Input = zigdug.Input;
 const ZigDug = zigdug.ZigDug;
 
-const p_window_width = 1920;
-const p_window_height = 1920;
+const debug_mode = (builtin.mode == std.builtin.Mode.Debug);
+
+const p_window_width = 1024;
+const p_window_height = 1024;
 
 pub fn main() !void {
     var arena_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena_allocator.allocator();
 
-    const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT); // |
-    //    @enumToInt(ray.ConfigFlags.FLAG_FULLSCREEN_MODE);
-    ray.SetConfigFlags(config_flags);
-    ray.InitWindow(p_window_width, p_window_height, "Zig Dug");
-    ray.HideCursor();
+    if (debug_mode) {
+        const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
+            @enumToInt(ray.ConfigFlags.FLAG_WINDOW_RESIZABLE);
+        ray.SetConfigFlags(config_flags);
+        ray.InitWindow(p_window_width, p_window_height, "Zig Dug (debug)");
+    } else {
+        const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
+            @enumToInt(ray.ConfigFlags.FLAG_FULLSCREEN_MODE);
+        ray.SetConfigFlags(config_flags);
+        ray.InitWindow(0, 0, "Zig Dug");
+    }
 
     const screen_width = config.render_tile_size * zigdug.config.map_width;
     const screen_height = config.render_tile_size * zigdug.config.map_height;
@@ -34,6 +44,11 @@ pub fn main() !void {
     ray.SetTargetFPS(60);
 
     while (!ray.WindowShouldClose() and game.is_running) {
+        if (debug_mode) {
+            if (ray.IsWindowResized()) {
+                renderer.scaleToScreen();
+            }
+        }
         const delta_s = ray.GetFrameTime();
         processInput(&game_input);
         game.update(&game_input, delta_s);
