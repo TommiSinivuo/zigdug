@@ -13,30 +13,16 @@ const ZigDug = zigdug.ZigDug;
 
 const debug_mode = (builtin.mode == std.builtin.Mode.Debug);
 
-const p_window_width = 1024;
-const p_window_height = 1024;
-
 pub fn main() !void {
     var arena_allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     const allocator = arena_allocator.allocator();
 
-    if (debug_mode) {
-        const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
-            @enumToInt(ray.ConfigFlags.FLAG_WINDOW_RESIZABLE);
-        ray.SetConfigFlags(config_flags);
-        ray.InitWindow(p_window_width, p_window_height, "Zig Dug (debug)");
-    } else {
-        const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
-            @enumToInt(ray.ConfigFlags.FLAG_FULLSCREEN_MODE);
-        ray.SetConfigFlags(config_flags);
-        ray.InitWindow(0, 0, "Zig Dug");
-    }
+    initWindow();
 
     const screen_width = config.render_tile_size * zigdug.config.map_width;
     const screen_height = config.render_tile_size * zigdug.config.map_height;
     var renderer = Renderer.init(screen_width, screen_height);
     var audio = try Audio.init(allocator);
-
     var game = try ZigDug.init(allocator);
     var game_input = Input{};
 
@@ -44,12 +30,12 @@ pub fn main() !void {
     ray.SetTargetFPS(60);
 
     while (!ray.WindowShouldClose() and game.is_running) {
-        if (debug_mode) {
-            if (ray.IsWindowResized()) {
-                renderer.scaleToScreen();
-            }
-        }
         const delta_s = ray.GetFrameTime();
+
+        if (ray.IsWindowResized()) {
+            renderer.scaleToScreen();
+        }
+
         processInput(&game_input);
         game.update(&game_input, delta_s);
         renderer.draw(&game);
@@ -59,6 +45,33 @@ pub fn main() !void {
     renderer.destroy();
     audio.destroy();
     ray.CloseWindow();
+}
+
+fn initWindow() void {
+    if (debug_mode) {
+        const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
+            @enumToInt(ray.ConfigFlags.FLAG_WINDOW_RESIZABLE);
+        ray.SetConfigFlags(config_flags);
+        ray.InitWindow(config.default_window_width, config.default_window_height, "Zig Dug (debug)");
+        ray.SetWindowSize(config.default_window_width, config.default_window_height);
+    } else {
+        switch (builtin.os.tag) {
+            .macos => {
+                const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
+                    @enumToInt(ray.ConfigFlags.FLAG_WINDOW_RESIZABLE);
+                ray.SetConfigFlags(config_flags);
+                ray.InitWindow(config.default_window_width, config.default_window_height, "Zig Dug");
+                ray.SetWindowSize(config.default_window_width, config.default_window_height);
+                ray.MaximizeWindow();
+            },
+            else => {
+                const config_flags = @enumToInt(ray.ConfigFlags.FLAG_VSYNC_HINT) |
+                    @enumToInt(ray.ConfigFlags.FLAG_FULLSCREEN_MODE);
+                ray.SetConfigFlags(config_flags);
+                ray.InitWindow(0, 0, "Zig Dug");
+            },
+        }
+    }
 }
 
 fn processInput(game_input: *Input) void {

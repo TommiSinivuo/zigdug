@@ -280,11 +280,14 @@ pub extern fn InitWindow(width: c_int, height: c_int, title: [*c]const u8) void;
 pub extern fn WindowShouldClose() bool;
 pub extern fn CloseWindow() void;
 pub extern fn IsWindowResized() bool;
+pub extern fn ToggleFullscreen() void;
+pub extern fn MaximizeWindow() void;
 pub extern fn SetWindowPosition(x: c_int, y: c_int) void;
 pub extern fn SetWindowSize(width: c_int, height: c_int) void;
 pub extern fn GetCurrentMonitor() c_int;
 pub extern fn GetMonitorWidth(monitor: c_int) c_int;
 pub extern fn GetMonitorHeight(monitor: c_int) c_int;
+pub extern fn GetWindowScaleDPI() Vector2;
 
 // Cursor-related functions
 pub extern fn HideCursor() void;
