@@ -65,19 +65,19 @@ pub const Renderer = struct {
     fn drawTitleState(self: *Renderer, title_state: *TitleState) void {
 
         // background
-        ray.WDrawTextureRec(
+        ray.DrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.ui_background),
-            &ray.Vector2{ .x = 0, .y = 0 },
-            &ray.WHITE,
+            spriteRectToRectangle(spritesheet.ui_background),
+            ray.Vector2{ .x = 0, .y = 0 },
+            ray.WHITE,
         );
 
         // title/logo
-        ray.WDrawTextureRec(
+        ray.DrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.zigdug_logo),
-            &ray.Vector2{ .x = 16, .y = 16 },
-            &ray.WHITE,
+            spriteRectToRectangle(spritesheet.zigdug_logo),
+            ray.Vector2{ .x = 16, .y = 16 },
+            ray.WHITE,
         );
 
         // menu options
@@ -86,11 +86,11 @@ pub const Renderer = struct {
 
         // menu selection
         const gem_y: f32 = if (title_state.selection == .quit) 192 else 160;
-        ray.WDrawTextureRec(
+        ray.DrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.gem),
-            &ray.Vector2{ .x = 88, .y = gem_y },
-            &ray.WHITE,
+            spriteRectToRectangle(spritesheet.gem),
+            ray.Vector2{ .x = 88, .y = gem_y },
+            ray.WHITE,
         );
     }
 
@@ -167,11 +167,11 @@ pub const Renderer = struct {
         };
 
         if (optional_sprite_rect) |sprite_rect| {
-            ray.WDrawTextureRec(
+            ray.DrawTextureRec(
                 self.spritesheet_texture,
-                &spriteRectToRectangle(sprite_rect),
-                &screen_point,
-                &ray.WHITE,
+                spriteRectToRectangle(sprite_rect),
+                screen_point,
+                ray.WHITE,
             );
         }
     }
@@ -183,11 +183,11 @@ pub const Renderer = struct {
     fn drawPauseState(self: *Renderer, pause_state: *PauseState) void {
 
         // background
-        ray.WDrawTextureRec(
+        ray.DrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.ui_background),
-            &ray.Vector2{ .x = 0, .y = 0 },
-            &ray.WHITE,
+            spriteRectToRectangle(spritesheet.ui_background),
+            ray.Vector2{ .x = 0, .y = 0 },
+            ray.WHITE,
         );
 
         // menu options
@@ -203,11 +203,11 @@ pub const Renderer = struct {
             .return_to_title => 136,
             .quit_game => 168,
         };
-        ray.WDrawTextureRec(
+        ray.DrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.gem),
-            &ray.Vector2{ .x = 40, .y = gem_y },
-            &ray.WHITE,
+            spriteRectToRectangle(spritesheet.gem),
+            ray.Vector2{ .x = 40, .y = gem_y },
+            ray.WHITE,
         );
     }
 
@@ -218,19 +218,19 @@ pub const Renderer = struct {
     fn drawCreditsState(self: *Renderer) void {
 
         // background
-        ray.WDrawTextureRec(
+        ray.DrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.ui_background),
-            &ray.Vector2{ .x = 0, .y = 0 },
-            &ray.WHITE,
+            spriteRectToRectangle(spritesheet.ui_background),
+            ray.Vector2{ .x = 0, .y = 0 },
+            ray.WHITE,
         );
 
         // the end
-        ray.WDrawTextureRec(
+        ray.DrawTextureRec(
             self.spritesheet_texture,
-            &spriteRectToRectangle(spritesheet.the_end),
-            &ray.Vector2{ .x = 16, .y = 48 },
-            &ray.WHITE,
+            spriteRectToRectangle(spritesheet.the_end),
+            ray.Vector2{ .x = 16, .y = 48 },
+            ray.WHITE,
         );
 
         // credits

@@ -399,14 +399,3 @@ pub extern fn EndViewportMode() void;
 pub extern fn DrawViewport(vp: *Viewport) void;
 pub extern fn ScaleViewportToScreen(vp: *Viewport) void;
 pub extern fn UnloadViewport(vp: *Viewport) void;
-
-//------------------------------------------------------------------------------------
-// Workarounds
-//------------------------------------------------------------------------------------
-
-pub extern fn WDrawTextureRec(
-    texture: Texture2D,
-    sourceRec: [*c]const Rectangle,
-    position: [*c]const Vector2,
-    tint: [*c]const Color,
-) void;

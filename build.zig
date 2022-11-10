@@ -25,8 +25,8 @@ pub fn build(b: *std.build.Builder) void {
         "-fno-sanitize=undefined", // https://github.com/raysan5/raylib/issues/1891
     };
 
-    exe.addIncludeDir("raylib/src");
-    exe.addIncludeDir("./raylib/src/external/glfw/include");
+    exe.addIncludePath("raylib/src");
+    exe.addIncludePath("./raylib/src/external/glfw/include");
 
     exe.addCSourceFile("./raylib/src/rcore.c", raylib_flags);
     exe.addCSourceFile("./raylib/src/rmodels.c", raylib_flags);
@@ -70,7 +70,6 @@ pub fn build(b: *std.build.Builder) void {
             exe.linkSystemLibrary("Xxf86vm");
             exe.linkSystemLibrary("Xcursor");
         },
-        // TODO: macos builds but does not run correctly (at least on M1)
         .macos => {
             // On macos rglfw.c include Objective-C files.
             const raylib_flags_extra_macos = &[_][]const u8{
@@ -94,9 +93,6 @@ pub fn build(b: *std.build.Builder) void {
 
     // My custom raylib addons
     exe.addCSourceFile("./src/raylib_viewport.c", raylib_flags);
-
-    // Raylib C ABI workarounds
-    exe.addCSourceFile("./src/raylib_workarounds.c", raylib_flags);
 
     exe.install();
 

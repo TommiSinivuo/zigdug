@@ -56,7 +56,7 @@ pub fn Tilemap(comptime T: type) type {
         }
 
         // TODO: needs to be tested properly
-        pub fn findFirst(self: *const Tilemap(T), predicate: fn (T) bool) ?Point(i32) {
+        pub fn findFirst(self: *const Tilemap(T), comptime predicate: fn (T) bool) ?Point(i32) {
             var iter = self.iteratorForward();
             while (iter.next()) |item| {
                 if (predicate(item.value)) {
